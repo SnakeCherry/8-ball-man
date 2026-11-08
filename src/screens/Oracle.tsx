@@ -12,6 +12,8 @@ import { TOO_BIG_GBP, estimateDecisions, matchPreset } from '../lib/estimate'
 import type { ParsedEstimate } from '../lib/estimate'
 import { fortuneLine, savingParts, savingSummary, switchLife } from '../lib/fortune'
 import { buysLine } from '../lib/buys'
+import { ManReaction } from '../components/ManReaction'
+import { reactionLine } from '../lib/reaction'
 import { formatSpan } from '../lib/life'
 import { burstAtElement } from '../lib/fx'
 import { NextBar } from '../components/NextBar'
@@ -100,7 +102,7 @@ export function Oracle() {
   }
 
   // while the ball is asking, whatever you say or type is the answer
-  const onText = (t: string) => (stage === 'asking' && said ? void run(`${said}. ${t}`, said, false) : void run(t, t, true))
+  const onText = (t: string) => (stage === 'asking' && said ? void run(`${said}. ${t}`, `${said}. ${t}`, false) : void run(t, t, true))
   const speech = useSpeechInput(onText)
   const { engine, phase } = speech
   const listening = phase === 'recording' || phase === 'listening'
@@ -205,7 +207,7 @@ export function Oracle() {
             <ul className="flex flex-wrap justify-center gap-3" aria-label="Answers">
               {ask.choices.map((c) => (
                 <li key={c}>
-                  <PixelButton variant="white" onClick={() => void run(`${said}. ${c}`, said, false)}>
+                  <PixelButton variant="white" onClick={() => void run(`${said}. ${c}`, `${said}. ${c}`, false)}>
                     {c}
                   </PixelButton>
                 </li>
@@ -219,6 +221,7 @@ export function Oracle() {
           <div className="anim-pop flex w-full max-w-[720px] flex-col items-center gap-5">
             {saving && (
               <div ref={cardRef} className="w-full space-y-6 border-4 border-ink bg-lime p-6 text-center text-ink sm:p-8">
+                <ManReaction delta={saving.amount} line={reactionLine(saving.amount)} size={5} className="justify-center" />
                 <SavingBig delta={saving.amount} once={saving.once} />
                 {saving.count > 1 && (
                   <p className="text-[16px]">

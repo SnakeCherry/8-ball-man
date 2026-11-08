@@ -80,7 +80,7 @@ export function useSpeechInput(onText: (text: string) => void) {
     try {
       const wav = await r.stop()
       if (!wav) throw new Error('too short')
-      const text = (await transcribe(wav)).trim()
+      const text = (await transcribe(wav, 'speech')).trim()
       if (!text) throw new Error('nothing heard')
       if (alive.current) onTextRef.current(text)
     } catch {

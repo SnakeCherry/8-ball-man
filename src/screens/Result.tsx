@@ -10,7 +10,10 @@ import { getDecision } from '../data/decisions'
 import { burstAtElement } from '../lib/fx'
 import { gbp, timeSavedText } from '../lib/format'
 import { lifeFromPoints, signedSpan } from '../lib/life'
+import { ManReaction } from '../components/ManReaction'
+import { reactionLine } from '../lib/reaction'
 import { play } from '../lib/sound'
+import { speak, stopSpeaking } from '../lib/speech'
 import { useAppStore } from '../store/useAppStore'
 import type { LastResult } from '../store/useAppStore'
 
@@ -41,6 +44,18 @@ export function Result() {
     return () => window.clearTimeout(t)
   }, [total])
 
+  // he says his line out loud once the sparkle has played (and goes quiet if you leave)
+  useEffect(() => {
+    if (!results.length) return
+    const t = window.setTimeout(() => void speak(reactionLine(total)), 900)
+    return () => {
+      window.clearTimeout(t)
+      stopSpeaking()
+    }
+    // once per result
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [total])
+
   if (!results.length) return null
   // the habits you just chose, for the time vs life chart
   const lifeItems = results.flatMap((r) => {
@@ -55,6 +70,7 @@ export function Result() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      <ManReaction delta={total} line={reactionLine(total)} size={7} className="px-1" />
       <div ref={ref}>
         <PixelCard className={`anim-pop space-y-3 ${total >= 0 ? 'bg-lime' : 'bg-white'}`}>
           <Label className="[&>span]:bg-white">{results.length > 1 ? `Your ${results.length} choices` : 'Your choice'}</Label>

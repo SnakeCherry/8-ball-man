@@ -46,11 +46,13 @@ def decode_wav(audio: bytes) -> np.ndarray:
     return raw.astype(np.float32) / 32768.0
 
 
-def transcribe(audio: bytes) -> str:
+def transcribe(audio: bytes, mode: str = "guess") -> str:
+    # "guess" is a short money answer, so the number prompt helps; "speech" is a whole sentence about what someone
+    # spends on, where that prompt pulled the text towards "forty quid", so it gets no prompt at all
     segments, _ = model.transcribe(
         decode_wav(audio),
         language="en",
-        initial_prompt=PROMPT,
+        initial_prompt=PROMPT if mode == "guess" else None,
         vad_filter=True,
         beam_size=1,
         condition_on_previous_text=False,
@@ -75,13 +77,15 @@ class Handler(BaseHTTPRequestHandler):
             self._send(404, {"error": "not found"})
 
     def do_POST(self):  # noqa: N802
-        if self.path != "/transcribe":
+        path, _, query = self.path.partition("?")
+        if path != "/transcribe":
             return self._send(404, {"error": "not found"})
+        mode = "speech" if "mode=speech" in query else "guess"
         n = int(self.headers.get("Content-Length", "0"))
         if n <= 0 or n > MAX_BYTES:
             return self._send(413, {"error": "audio missing or too large"})
         try:
-            self._send(200, {"text": transcribe(self.rfile.read(n))})
+            self._send(200, {"text": transcribe(self.rfile.read(n), mode)})
         except Exception as e:  # keep serving; the app falls back to the browser recogniser
             self._send(500, {"error": str(e)})
 

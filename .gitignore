@@ -25,4 +25,3 @@ dist-ssr
 
 # local secrets (Spark LLM key)
 .env.local
-README.md

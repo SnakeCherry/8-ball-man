@@ -14,6 +14,20 @@
   size-adjust: 128%;
 }
 
+/* Self-hosted so the app makes no font requests to Google (works offline). */
+@font-face {
+  font-family: 'Pixelify Sans';
+  src: url('/fonts/PixelifySans-Variable.ttf') format('truetype');
+  font-weight: 400 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Press Start 2P';
+  src: url('/fonts/PressStart2P-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-display: swap;
+}
+
 @theme {
   --color-mint: #c6fdc7;
   --color-lime: #6ef07f;
@@ -889,4 +903,43 @@ body {
 }
 .pblue:hover {
   background: #4f86ff;
+}
+
+/* ---- 8-Ball Man's reactions ---- */
+.man-happy {
+  position: relative;
+}
+.man-sad {
+  position: relative;
+  filter: saturate(0.75);
+}
+.man-sad .man-body {
+  transform: translateY(6px) rotate(-5deg);
+}
+.sweat {
+  position: absolute;
+  right: 6px;
+  top: 14px;
+  width: 8px;
+  height: 12px;
+  background: #5aa9ff;
+  clip-path: polygon(50% 0, 100% 60%, 100% 100%, 0 100%, 0 60%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .man-happy .man-body {
+    animation: hop 0.7s steps(4) infinite;
+  }
+  .sweat {
+    animation: sweatdrop 1.4s steps(5) infinite;
+  }
+}
+@keyframes sweatdrop {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(18px);
+    opacity: 0;
+  }
 }

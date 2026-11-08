@@ -134,6 +134,9 @@ export function forSpeech(text: string): string {
 let playing: HTMLAudioElement | null = null
 let speakToken = 0
 let remoteDownUntil = 0
+let elevenDownUntil = 0
+/** ElevenLabs is a cloud service, so it stays off unless VITE_USE_ELEVENLABS=1 is set in .env.local (everything else runs on our own hardware). */
+const ELEVEN_ON = import.meta.env.VITE_USE_ELEVENLABS === '1'
 const audioCache = new Map<string, string>()
 
 /** Stop whatever is being said (both voices). */
@@ -181,9 +184,25 @@ export async function speak(text: string, untilDone = false): Promise<void> {
   const mine = speakToken
   const said = forSpeech(text)
   try {
-    if (Date.now() < remoteDownUntil) throw new Error('tts recently down')
     let url = audioCache.get(said)
+    if (!url && ELEVEN_ON && Date.now() >= elevenDownUntil) {
+      // ElevenLabs first (the key stays in the dev server, see vite.config.ts); on any failure we leave it alone for a minute
+      try {
+        const r = await fetch('/api/eleven/speak', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: said, model_id: 'eleven_flash_v2_5' }),
+          signal: AbortSignal.timeout(8000),
+        })
+        if (!r.ok) throw new Error(`eleven ${r.status}`)
+        url = URL.createObjectURL(await r.blob())
+        audioCache.set(said, url)
+      } catch {
+        elevenDownUntil = Date.now() + 60_000
+      }
+    }
     if (!url) {
+      if (Date.now() < remoteDownUntil) throw new Error('tts recently down')
       const r = await fetch('/api/tts/speak', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,8 +244,8 @@ export async function whisperAvailable(): Promise<boolean> {
 }
 
 /** Send a WAV clip to Whisper. Throws on any failure so the caller can fall back. */
-export async function transcribe(wav: Blob): Promise<string> {
-  const r = await fetch('/api/asr/transcribe', { method: 'POST', body: wav, headers: { 'Content-Type': 'audio/wav' }, signal: timeout(6000) })
+export async function transcribe(wav: Blob, mode: 'guess' | 'speech' = 'guess'): Promise<string> {
+  const r = await fetch(`/api/asr/transcribe?mode=${mode}`, { method: 'POST', body: wav, headers: { 'Content-Type': 'audio/wav' }, signal: timeout(6000) })
   if (!r.ok) throw new Error(`transcribe ${r.status}`)
   const j = (await r.json()) as { text?: string }
   return j.text ?? ''
