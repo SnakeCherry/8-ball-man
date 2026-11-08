@@ -1,16 +1,25 @@
 import type { Axis, Option, Priority, Weights } from './types'
 
-export const AXES: Axis[] = ['cost', 'time', 'co2']
+export const AXES: Axis[] = ['cost', 'time', 'health']
 
 export const PRIORITY_WEIGHTS: Record<Priority, Weights> = {
-  money: { cost: 0.7, time: 0.15, co2: 0.15 },
-  time: { cost: 0.15, time: 0.7, co2: 0.15 },
-  footprint: { cost: 0.15, time: 0.15, co2: 0.7 },
-  balanced: { cost: 1 / 3, time: 1 / 3, co2: 1 / 3 },
+  money: { cost: 0.7, time: 0.15, health: 0.15 },
+  time: { cost: 0.15, time: 0.7, health: 0.15 },
+  health: { cost: 0.15, time: 0.15, health: 0.7 },
+  balanced: { cost: 1 / 3, time: 1 / 3, health: 1 / 3 },
 }
 
+/** The number as people read it: pounds, minutes, or the health score out of 10. */
+export function axisShown(o: Option, axis: Axis): number {
+  return axis === 'cost' ? o.costGBP : axis === 'time' ? o.timeMin : o.health
+}
+
+/**
+ * The number ranking works on, where LOWER IS BETTER on every axis. Health is scored the other way
+ * round (10 is great), so it is flipped here and nowhere else.
+ */
 export function axisValue(o: Option, axis: Axis): number {
-  return axis === 'cost' ? o.costGBP : axis === 'time' ? o.timeMin : o.co2Kg
+  return axis === 'cost' ? o.costGBP : axis === 'time' ? o.timeMin : 10 - o.health
 }
 
 /**
@@ -31,9 +40,9 @@ export function normalise(options: Option[], axis: Axis): number[] {
 function renormalise(w: Weights, floor = 0.05): Weights {
   const c = Math.max(w.cost, floor)
   const t = Math.max(w.time, floor)
-  const e = Math.max(w.co2, floor)
+  const e = Math.max(w.health, floor)
   const sum = c + t + e
-  return { cost: c / sum, time: t / sum, co2: e / sum }
+  return { cost: c / sum, time: t / sum, health: e / sum }
 }
 
 export interface BlendResult {
@@ -61,14 +70,14 @@ export function blendWeights(
           ...acc,
           [a]: history.reduce((s, p) => s + PRIORITY_WEIGHTS[p][a], 0) / history.length,
         }),
-        { cost: 0, time: 0, co2: 0 } as Weights,
+        { cost: 0, time: 0, health: 0 } as Weights,
       )
     : current
 
   let blended: Weights = {
     cost: 0.7 * current.cost + 0.3 * past.cost,
     time: 0.7 * current.time + 0.3 * past.time,
-    co2: 0.7 * current.co2 + 0.3 * past.co2,
+    health: 0.7 * current.health + 0.3 * past.health,
   }
 
   const moneyNudged = moneyLeftRatio < 0.3
@@ -98,11 +107,19 @@ export function rank(options: Option[], weights: Weights): Ranking {
   const ranked = options
     .map((option, i) => ({
       option,
-      score: weights.cost * norm[0][i] + weights.time * norm[1][i] + weights.co2 * norm[2][i],
+      score: weights.cost * norm[0][i] + weights.time * norm[1][i] + weights.health * norm[2][i],
     }))
     .sort((a, b) => a.score - b.score)
   const close = ranked.length > 1 && ranked[1].score - ranked[0].score < 0.05
   return { ranked, close }
+}
+
+/** Options ordered best (lowest) first on an axis; ties keep data order. */
+export function podiumOrder(options: Option[], axis: Axis): Option[] {
+  return options
+    .map((o, i) => ({ o, i }))
+    .sort((a, b) => axisValue(a.o, axis) - axisValue(b.o, axis) || a.i - b.i)
+    .map((x) => x.o)
 }
 
 /** The option with the lowest value on an axis. */

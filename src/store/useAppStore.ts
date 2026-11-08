@@ -1,15 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { getDecision } from '../data/decisions'
+import { getDecision, registerDecision } from '../data/decisions'
 import { evaluateBadges } from '../lib/badges'
-import { countCorrect, timePurchase } from '../lib/explain'
+import { timePurchase } from '../lib/explain'
 import type { TimePurchase } from '../lib/explain'
-import { DEFAULT_CARBON_RATE, DEFAULT_TIME_RATE } from '../lib/exchangeRates'
+import { DEFAULT_HEALTH_RATE, DEFAULT_TIME_RATE } from '../lib/exchangeRates'
+import { CLOSE, closeness, guessError, monthlyCost } from '../lib/guess'
+import { EMPTY_GUT, addGuess, nextStreak } from '../lib/gut'
+import type { GutTally } from '../lib/gut'
 import { applySaving, goalEffect, isoInDays } from '../lib/goal'
-import { bestOn } from '../lib/scoring'
-import type { Axis, ChoiceRecord, Goal, Guesses, Priority } from '../lib/types'
+import { EMOJI_TO_ICON } from '../lib/pixelart'
+import { nearestPriority } from '../lib/triangle'
+import type { ChoiceRecord, Decision, Goal, Priority, Weights } from '../lib/types'
 
-export type Screen = 'onboarding' | 'home' | 'predict' | 'reveal' | 'goal' | 'recap'
+export type Screen = 'onboarding' | 'home' | 'predict' | 'reveal' | 'priority' | 'goal' | 'recap'
 
 /** A typical student's weekly spending money, used to judge how tight "money left" is. */
 export const WEEKLY_BASE = 50
@@ -24,45 +28,47 @@ export interface LastResult {
   newBadges: string[]
 }
 
-const EMPTY_GUESSES: Guesses = { cost: null, time: null, co2: null }
-const EMPTY_GUT: Record<Axis, { right: number; total: number }> = {
-  cost: { right: 0, total: 0 },
-  time: { right: 0, total: 0 },
-  co2: { right: 0, total: 0 },
-}
 
 interface Persisted {
   onboarded: boolean
   timeRate: number
-  carbonRate: number
+  healthRate: number
   goal: Goal | null
   moneyLeft: number
   priority: Priority
   vibeHistory: Priority[]
   history: ChoiceRecord[]
   usual: Record<string, string>
-  gut: Record<Axis, { right: number; total: number }>
+  gut: GutTally
   badges: string[]
+  /** close guesses in a row, and the best run so far */
+  streak: number
+  bestStreak: number
+  /** decisions made from what the student said, kept so their history still resolves after a reload */
+  customDecisions: Decision[]
 }
 
 interface Flow {
   screen: Screen
-  /** which of the three guess questions is showing (0 cheapest, 1 fastest, 2 greenest) */
-  guessStep: number
   decisionId: string | null
-  guesses: Guesses
+  /** the student's guess at their usual option's monthly cost, in £ */
+  guess: number | null
+  /** weights dragged on the trade-off triangle; null until the student drags (then the chips/history blend applies) */
+  weights: Weights | null
   lastResult: LastResult | null
 }
 
 interface Actions {
   go: (screen: Screen) => void
-  setGuessStep: (n: number) => void
   startDecision: (id: string) => void
-  setGuess: (axis: Axis, optionId: string) => void
+  /** begin from a decision made from speech: no guess round, straight to the results */
+  startCustom: (d: Decision) => void
+  setGuess: (n: number) => void
   setPriority: (p: Priority) => void
+  setWeights: (w: Weights) => void
   setMoneyLeft: (n: number) => void
   setUsual: (decisionId: string, optionId: string) => void
-  finishOnboarding: (v: { timeRate: number; carbonRate: number; goal: Goal; moneyLeft: number }) => void
+  finishOnboarding: (v: { timeRate: number; healthRate: number; goal: Goal; moneyLeft: number }) => void
   commitChoice: (optionId: string) => void
   loadDemo: () => void
   reset: () => void
@@ -73,22 +79,25 @@ export type AppState = Persisted & Flow & Actions
 const fresh = (): Persisted => ({
   onboarded: false,
   timeRate: DEFAULT_TIME_RATE,
-  carbonRate: DEFAULT_CARBON_RATE,
+  healthRate: DEFAULT_HEALTH_RATE,
   goal: null,
   moneyLeft: 40,
   priority: 'balanced',
   vibeHistory: [],
   history: [],
   usual: {},
-  gut: structuredClone(EMPTY_GUT),
+  gut: { ...EMPTY_GUT },
   badges: [],
+  streak: 0,
+  bestStreak: 0,
+  customDecisions: [],
 })
 
 const freshFlow = (screen: Screen): Flow => ({
   screen,
-  guessStep: 0,
   decisionId: null,
-  guesses: { ...EMPTY_GUESSES },
+  guess: null,
+  weights: null,
   lastResult: null,
 })
 
@@ -96,23 +105,25 @@ function demoProfile(): Persisted {
   const now = Date.now()
   const rec = (r: Omit<ChoiceRecord, 'at'>, ago: number): ChoiceRecord => ({ ...r, at: now - ago * 86_400_000 })
   const history: ChoiceRecord[] = [
-    rec({ decisionId: 'commute', optionId: 'uber', priority: 'time', correctGuesses: 2, savedGBP: -5.6, minutesSaved: 14, verdict: 'steep' }, 6),
-    rec({ decisionId: 'dinner', optionId: 'mealdeal', priority: 'time', correctGuesses: 3, savedGBP: 7.9, minutesSaved: 25, verdict: null }, 5),
-    rec({ decisionId: 'lunch', optionId: 'packed', priority: 'money', correctGuesses: 1, savedGBP: 4.2, minutesSaved: 3, verdict: null }, 3),
-    rec({ decisionId: 'coffee', optionId: 'union', priority: 'time', correctGuesses: 2, savedGBP: 1.3, minutesSaved: 4, verdict: null }, 2),
+    rec({ decisionId: 'commute', optionId: 'uber', priority: 'time', guessErr: 0.3, savedGBP: -5.6, minutesSaved: 14, verdict: 'steep' }, 6),
+    rec({ decisionId: 'dinner', optionId: 'mealdeal', priority: 'time', guessErr: 0.05, savedGBP: 7.9, minutesSaved: 25, verdict: null }, 5),
+    rec({ decisionId: 'lunch', optionId: 'packed', priority: 'money', guessErr: 0.6, savedGBP: 4.2, minutesSaved: 3, verdict: null }, 3),
+    rec({ decisionId: 'coffee', optionId: 'union', priority: 'time', guessErr: 0.2, savedGBP: 1.3, minutesSaved: 4, verdict: null }, 2),
   ]
   return {
     ...fresh(),
     onboarded: true,
     timeRate: 14,
-    carbonRate: 0.4,
-    goal: { name: 'Festival ticket', emoji: '🎪', target: 120, saved: 34, dueISO: isoInDays(45) },
+    healthRate: 0.4,
+    goal: { name: 'Festival ticket', icon: 'ticket', target: 120, saved: 34, dueISO: isoInDays(45) },
     moneyLeft: 25,
     priority: 'time',
     vibeHistory: history.map((h) => h.priority),
     history,
-    gut: { cost: { right: 2, total: 4 }, time: { right: 3, total: 4 }, co2: { right: 1, total: 4 } },
-    badges: evaluateBadges(history),
+    gut: { points: 3.4, weight: 6, n: 4, close: 2 },
+    badges: evaluateBadges(history, 3),
+    streak: 2,
+    bestStreak: 3,
   }
 }
 
@@ -123,25 +134,39 @@ export const useAppStore = create<AppState>()(
       ...freshFlow('onboarding'),
 
       go: (screen) => set({ screen }),
-      setGuessStep: (guessStep) => set({ guessStep }),
 
       startDecision: (id) =>
         set((s) => ({
           decisionId: id,
-          guessStep: 0,
-          guesses: { ...EMPTY_GUESSES },
+          guess: null,
+          weights: null,
           lastResult: null,
           priority: s.vibeHistory.at(-1) ?? s.priority,
           screen: 'predict',
         })),
 
-      setGuess: (axis, optionId) => set((s) => ({ guesses: { ...s.guesses, [axis]: optionId } })),
-      setPriority: (priority) => set({ priority }),
+      startCustom: (d) => {
+        registerDecision(d)
+        set((s) => ({
+          customDecisions: [...s.customDecisions.filter((x) => x.id !== d.id), d].slice(-12),
+          decisionId: d.id,
+          usual: { ...s.usual, [d.id]: d.usualId },
+          guess: null,
+          weights: null,
+          lastResult: null,
+          priority: s.vibeHistory.at(-1) ?? s.priority,
+          screen: 'reveal',
+        }))
+      },
+
+      setGuess: (guess) => set({ guess }),
+      setPriority: (priority) => set({ priority, weights: null }),
+      setWeights: (weights) => set({ weights, priority: nearestPriority(weights) }),
       setMoneyLeft: (moneyLeft) => set({ moneyLeft }),
       setUsual: (decisionId, optionId) => set((s) => ({ usual: { ...s.usual, [decisionId]: optionId } })),
 
-      finishOnboarding: ({ timeRate, carbonRate, goal, moneyLeft }) =>
-        set({ onboarded: true, timeRate, carbonRate, goal, moneyLeft, screen: 'home' }),
+      finishOnboarding: ({ timeRate, healthRate, goal, moneyLeft }) =>
+        set({ onboarded: true, timeRate, healthRate, goal, moneyLeft, screen: 'home' }),
 
       commitChoice: (optionId) => {
         const s = get()
@@ -155,30 +180,35 @@ export const useAppStore = create<AppState>()(
         const purchase = timePurchase(chosen, usual, s.timeRate)
         const effect = s.goal ? goalEffect(s.goal, delta) : { deltaGBP: delta, days: 0 }
 
+        // how close the monthly-cost guess was, for the streak and the Gut Score
+        const err = s.guess === null ? 1 : guessError(s.guess, monthlyCost(usual, d))
+        const isClose = s.guess !== null && err <= CLOSE
+        // no guess (a decision made from speech) neither earns nor breaks a streak
+        const streak = s.guess === null ? s.streak : nextStreak(s.streak, [isClose])
+
         const record: ChoiceRecord = {
           decisionId: d.id,
           optionId,
           priority: s.priority,
-          correctGuesses: countCorrect(d, s.guesses),
+          guessErr: err,
           savedGBP: delta,
           minutesSaved: usual.timeMin - chosen.timeMin,
           verdict: purchase?.verdict ?? null,
           at: Date.now(),
         }
         const history = [...s.history, record]
-        const earned = evaluateBadges(history)
+        const bestStreak = Math.max(s.bestStreak, streak)
+        const earned = evaluateBadges(history, bestStreak)
         const newBadges = earned.filter((b) => !s.badges.includes(b))
 
-        const gut = structuredClone(s.gut)
-        for (const axis of ['cost', 'time', 'co2'] as Axis[]) {
-          gut[axis].total += 1
-          if (s.guesses[axis] === bestOn(d.options, axis).id) gut[axis].right += 1
-        }
+        const gut = s.guess === null ? s.gut : addGuess(s.gut, closeness(err), isClose)
 
         set({
           history,
           badges: earned,
           gut,
+          streak,
+          bestStreak,
           vibeHistory: [...s.vibeHistory, s.priority],
           goal: s.goal ? applySaving(s.goal, delta) : null,
           lastResult: {
@@ -197,12 +227,36 @@ export const useAppStore = create<AppState>()(
       reset: () => set({ ...fresh(), ...freshFlow('onboarding') }),
     }),
     {
-      name: 'trade-off-check-v1',
-      version: 1,
+      name: 'trade-off-check-v3',
+      version: 5,
+      // v4: the third axis became health instead of CO2 (footprint priority, green badge, carbon rate)
+      migrate: (persisted, version) => {
+        const s = (persisted ?? {}) as Record<string, unknown>
+        if (version < 4) {
+          const fix = (p: unknown) => (p === 'footprint' ? 'health' : p)
+          s.priority = fix(s.priority)
+          s.vibeHistory = ((s.vibeHistory as unknown[] | undefined) ?? []).map(fix)
+          s.history = ((s.history as Record<string, unknown>[] | undefined) ?? []).map((h) => ({ ...h, priority: fix(h.priority) }))
+          s.badges = ((s.badges as string[] | undefined) ?? []).map((b) => (b === 'green' ? 'health' : b))
+          s.healthRate = s.carbonRate ?? 0.4
+          delete s.carbonRate
+          s.customDecisions = [] // those carried CO2 figures, not health scores
+        }
+        if (version < 5) {
+          // v5: pixel icons replaced emoji for goals and decisions
+          const g = s.goal as Record<string, unknown> | null | undefined
+          if (g) {
+            g.icon = EMOJI_TO_ICON[String(g.emoji)] ?? 'flag'
+            delete g.emoji
+          }
+          s.customDecisions = []
+        }
+        return s as unknown as AppState
+      },
       partialize: (s): Persisted => ({
         onboarded: s.onboarded,
         timeRate: s.timeRate,
-        carbonRate: s.carbonRate,
+        healthRate: s.healthRate,
         goal: s.goal,
         moneyLeft: s.moneyLeft,
         priority: s.priority,
@@ -211,9 +265,13 @@ export const useAppStore = create<AppState>()(
         usual: s.usual,
         gut: s.gut,
         badges: s.badges,
+        streak: s.streak,
+        bestStreak: s.bestStreak,
+        customDecisions: s.customDecisions,
       }),
       // returning visitors land on Home, not onboarding
       onRehydrateStorage: () => (state) => {
+        state?.customDecisions?.forEach(registerDecision)
         if (state?.onboarded) state.go('home')
       },
     },

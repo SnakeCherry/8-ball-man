@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { PixelArt } from '../components/PixelArt'
+import { VoiceTell } from '../components/VoiceTell'
 import { PixelBar, PixelButton, PixelCard, PixelIcon, Label, Title } from '../components/ui'
 import { PRIORITY_NAME } from '../data/copy'
 import { DECISIONS, SOURCE_NOTE } from '../data/decisions'
@@ -34,12 +36,12 @@ export function Home() {
       <button
         key={d.id}
         type="button"
-        data-emoji={d.emoji}
+        data-art={d.icon}
         onClick={() => startDecision(d.id)}
         className="pbox pselect flex items-center gap-3 p-3"
       >
-        <span className="text-[30px] leading-none" aria-hidden="true">
-          {d.emoji}
+        <span className="leading-none" aria-hidden="true">
+          <PixelArt name={d.icon} size={3} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-[19px] leading-tight">{d.title}</span>
@@ -59,12 +61,14 @@ export function Home() {
 
   return (
     <div className="space-y-6">
+      <VoiceTell />
+
       {goal && (
         <PixelCard>
           <Label>Saving for</Label>
           <div className="mt-2 flex items-baseline justify-between gap-2">
             <p className="text-[20px]">
-              {goal.emoji} {goal.name}
+              <PixelArt name={goal.icon} size={2} /> {goal.name}
             </p>
             <p className="num text-[24px] font-semibold leading-none">
               {gbp(goal.saved)} / {gbp(goal.target)}
@@ -84,8 +88,8 @@ export function Home() {
       <div>
         <Title className="mb-1">Today's picks</Title>
         <p className="mb-3 text-[15px] text-ink/70">Tap one to guess, then see the real numbers.</p>
-        <div className="grid gap-3">{picks.map(card)}</div>
-        {showAll && <div className="mt-3 grid gap-3">{rest.map(card)}</div>}
+        <div className="grid gap-3 lg:grid-cols-3">{picks.map(card)}</div>
+        {showAll && <div className="mt-3 grid gap-3 lg:grid-cols-3">{rest.map(card)}</div>}
         <PixelButton variant="white" className="mt-4 w-full" aria-expanded={showAll} onClick={() => setShowAll((v) => !v)}>
           {showAll ? 'Show fewer' : `Show all ${DECISIONS.length}`}
         </PixelButton>

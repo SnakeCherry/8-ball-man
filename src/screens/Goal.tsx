@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
+import { PixelArt } from '../components/PixelArt'
+import { CoinJar } from '../components/CoinJar'
 import { CountUp } from '../components/CountUp'
-import { GoalPath } from '../components/parts'
 import { TwoYous } from '../components/TwoYous'
 import { buildRace, pickRival } from '../lib/race'
 import { PixelButton, PixelCard, PixelIcon, Label } from '../components/ui'
@@ -8,6 +9,7 @@ import { VERDICT_LINE } from '../data/copy'
 import { getDecision } from '../data/decisions'
 import { badgeById } from '../lib/badges'
 import { burstAtElement } from '../lib/fx'
+import { play } from '../lib/sound'
 import { gbp, mins, plural, round1 } from '../lib/format'
 import { daysLeft, progress } from '../lib/goal'
 import { useAppStore } from '../store/useAppStore'
@@ -28,7 +30,10 @@ function BadgeCard({ id }: { id: string }) {
   const b = badgeById(id)
   // confetti once the card has popped in
   useEffect(() => {
-    const t = window.setTimeout(() => burstAtElement(ref.current, { icon: 'star', count: 12, spread: 88 }), 500)
+    const t = window.setTimeout(() => {
+      burstAtElement(ref.current, { icon: 'star', count: 12, spread: 88 })
+      play('badge')
+    }, 500)
     return () => window.clearTimeout(t)
   }, [])
   return (
@@ -80,8 +85,13 @@ export function GoalScreen() {
   const moved = result && Math.abs(result.days) >= 0.05
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
+      <div className="space-y-6">
       {race && <TwoYous race={race.race} goal={goal} savedBefore={race.savedBefore} />}
+      {result?.newBadges.map((id) => <BadgeCard key={id} id={id} />)}
+
+      </div>
+      <div className="space-y-6">
       {result && (
         <div ref={cardRef} className={days < 0 ? 'anim-shake' : ''} style={{ animationDelay: '0.5s' }}>
           <PixelCard className="anim-pop">
@@ -113,23 +123,19 @@ export function GoalScreen() {
         </div>
       )}
 
-      {result?.newBadges.map((id) => <BadgeCard key={id} id={id} />)}
-
       <PixelCard>
         <Label>
-          {goal.emoji} {goal.name}
+          <PixelArt name={goal.icon} size={2} /> {goal.name}
         </Label>
-        <GoalPath from={before} to={now} />
+        <CoinJar from={before} to={now} deltaGBP={result?.deltaGBP ?? 0} goalIcon={goal.icon} />
         <p className="num mt-3 text-[17px]">
           {gbp(goal.saved)} of {gbp(goal.target)} · {daysLeft(goal)} days left
         </p>
         <p className="num text-[15px] text-ink/70">{gbp(remaining)} to go</p>
-        {result && before !== now && (
-          <p className="mt-2 text-[14px] text-ink/70">The faded marker shows where you were before this choice.</p>
-        )}
       </PixelCard>
 
-      <div className="grid gap-3">
+      </div>
+      <div className="grid gap-3 lg:col-span-2 lg:grid-cols-2">
         <PixelButton onClick={() => go('home')}>Pick another decision</PixelButton>
         <PixelButton variant="white" onClick={() => go('recap')}>
           See my recap

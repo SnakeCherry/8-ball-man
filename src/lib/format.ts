@@ -15,8 +15,9 @@ export function mins(n: number): string {
   return `${m} min`
 }
 
-export function kg(n: number): string {
-  return `${Math.abs(n).toFixed(1)} kg`
+/** A health score out of 10. */
+export function score(n: number): string {
+  return `${Math.round(n)}/10`
 }
 
 export function plural(n: number, one: string, many = `${one}s`): string {

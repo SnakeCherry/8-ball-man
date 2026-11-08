@@ -1,23 +1,22 @@
 import { useState } from 'react'
+import { PixelArt } from '../components/PixelArt'
 import { createPortal } from 'react-dom'
 import { OptionStats } from '../components/parts'
+import { TradeoffTriangle } from '../components/TradeoffTriangle'
 import { PixelButton, PixelCard, Label, Title } from '../components/ui'
-import type { SpriteName } from '../components/ui'
-import { PRIORITY_CHIPS, PRIORITY_NAME } from '../data/copy'
+import { PRIORITY_NAME } from '../data/copy'
 import { getDecision } from '../data/decisions'
 import { recommendationSentence } from '../lib/explain'
 import { gbp, mins } from '../lib/format'
-import { blendWeights, rank } from '../lib/scoring'
-import type { Option, Priority } from '../lib/types'
+import { suggestFor } from '../lib/suggest'
+import type { Option } from '../lib/types'
 import { moneyRatio, useAppStore } from '../store/useAppStore'
 
-const CHIPS = PRIORITY_CHIPS.filter((c) => c.id !== 'balanced')
-const CHIP_FX: Record<string, SpriteName> = { money: 'pound', time: 'clock', footprint: 'leaf' }
-
-/** `delay` (seconds) holds the bar until the numbers above have finished revealing. */
-export function Choose({ delay = 0, ready = true }: { delay?: number; ready?: boolean }) {
-  const { decisionId, priority, vibeHistory, moneyLeft, usual } = useAppStore()
+/** The priority screen: what matters most this week, then take the (re-ranked) suggestion. */
+export function Choose() {
+  const { decisionId, priority, weights, vibeHistory, moneyLeft, usual } = useAppStore()
   const setPriority = useAppStore((s) => s.setPriority)
+  const setWeights = useAppStore((s) => s.setWeights)
   const setUsual = useAppStore((s) => s.setUsual)
   const commit = useAppStore((s) => s.commitChoice)
   const [manual, setManual] = useState<string | null>(null)
@@ -27,10 +26,7 @@ export function Choose({ delay = 0, ready = true }: { delay?: number; ready?: bo
   const d = getDecision(decisionId)
   const usualId = usual[d.id] ?? d.usualId
   const usualOpt = d.options.find((o) => o.id === usualId)!
-  const blend = blendWeights(priority, vibeHistory, moneyRatio(moneyLeft))
-  const ranking = rank(d.options, blend.weights)
-  const suggested = ranking.ranked[0].option
-  const others = ranking.ranked.slice(1).map((r) => r.option)
+  const { blend, ranking, suggested, others } = suggestFor(d, priority, vibeHistory, moneyRatio(moneyLeft), weights)
   // the suggestion is preselected until the user picks something else themselves
   const selected = d.options.find((o) => o.id === (manual ?? suggested.id)) ?? suggested
   const last = vibeHistory.at(-1)
@@ -40,9 +36,8 @@ export function Choose({ delay = 0, ready = true }: { delay?: number; ready?: bo
   if (blend.historyShifted) notes.push("Your past choices lean that way a little, so we've weighed it in.")
   if (blend.moneyNudged) notes.push('Money left is low, so cost counts for a bit more.')
 
-  const changePriority = (p: Priority) => {
-    // tapping the active chip again means "a bit of everything"
-    setPriority(priority === p ? 'balanced' : p)
+  const drag = (w: Parameters<typeof setWeights>[0]) => {
+    setWeights(w)
     setManual(null)
   }
 
@@ -55,14 +50,14 @@ export function Choose({ delay = 0, ready = true }: { delay?: number; ready?: bo
         type="button"
         aria-pressed={selected.id === o.id}
         data-fx="pound"
-        data-emoji={o.emoji}
+        data-art={o.icon}
         onClick={() => setManual(o.id)}
         className="pbox pselect p-3"
       >
         <div className="flex items-start justify-between gap-2 pr-5">
           <p className="text-[20px] leading-tight">
             <span className="emoji-drive" aria-hidden="true">
-              {o.emoji}
+              <PixelArt name={o.icon} size={2} />
             </span>{' '}
             {o.name}
           </p>
@@ -81,29 +76,33 @@ export function Choose({ delay = 0, ready = true }: { delay?: number; ready?: bo
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-12 lg:space-y-0">
       <section aria-labelledby="step-priority">
         <Title className="mb-1">
-          <span id="step-priority">What matters this week?</span>
+          <span id="step-priority">What matters most to you this week?</span>
         </Title>
-        <p className="mb-3 text-[15px] text-ink/70">Tap one. Tap it again for a bit of everything.</p>
-        <div className="grid grid-cols-3 gap-3" role="group" aria-label="What matters this week">
-          {CHIPS.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              aria-pressed={priority === c.id}
-              data-fx={CHIP_FX[c.id]}
-              onClick={() => changePriority(c.id)}
-              className="pbox-flat pselect px-1 py-3 text-center text-[15px] leading-tight"
-            >
-              {c.id === 'money' ? 'Money' : c.id === 'time' ? 'Time' : 'Footprint'}
-            </button>
-          ))}
+        <p className="mb-3 text-[15px] text-ink/70">Drag the handle. Your options sit near what they are best at.</p>
+        <TradeoffTriangle weights={weights ?? blend.weights} onChange={drag} options={d.options} bestId={suggested.id} />
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <p className="num text-[15px]">
+            {Math.round((weights ?? blend.weights).cost * 100)}% money · {Math.round((weights ?? blend.weights).time * 100)}% time ·{' '}
+            {Math.round((weights ?? blend.weights).health * 100)}% health
+          </p>
+          <button
+            type="button"
+            className="pbtn pbtn-white !min-h-[36px] !px-2 !py-1 text-[14px]"
+            onClick={() => {
+              setPriority('balanced')
+              setManual(null)
+            }}
+          >
+            Even mix
+          </button>
         </div>
         {notes.length > 0 && <p className="mt-3 text-[15px] text-ink/80">{notes.join(' ')}</p>}
       </section>
 
+      <div className="space-y-6">
       <section aria-label="Our suggestion" className="space-y-3">
         <PixelCard>
           <Label>Our suggestion</Label>
@@ -147,14 +146,12 @@ export function Choose({ delay = 0, ready = true }: { delay?: number; ready?: bo
         )}
       </div>
 
+      </div>
       {/* portalled: the screen wrapper animates a transform, which would trap a fixed child */}
       {createPortal(
-        <div
-          className="anim-slide fixed inset-x-0 bottom-0 z-10 border-t-4 border-ink bg-white p-3"
-          style={{ animationDelay: `${delay}s` }}
-        >
+        <div className="fixed inset-x-0 bottom-0 z-10 border-t-4 border-ink bg-white p-3">
           <div className="mx-auto max-w-md">
-            <PixelButton className="w-full" data-fx="pound" disabled={!ready} onClick={() => commit(selected.id)}>
+            <PixelButton className="w-full" data-fx="pound" onClick={() => commit(selected.id)}>
               {selected.id === suggested.id ? `Take ${selected.name}` : `Choose ${selected.name}`}
             </PixelButton>
           </div>

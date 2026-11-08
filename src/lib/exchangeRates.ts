@@ -1,6 +1,6 @@
 /**
  * "Would you rather" duels are a bisection search for how a student trades
- * money against time and against carbon. Each answer halves the range.
+ * money against time and against health. Each answer halves the range.
  */
 export interface Bounds {
   lo: number
@@ -9,11 +9,11 @@ export interface Bounds {
 
 /** £ per hour of time */
 export const TIME_START: Bounds = { lo: 2, hi: 24 }
-/** £ per kg of CO₂ */
-export const CARBON_START: Bounds = { lo: 0.05, hi: 2 }
+/** £ per health point (our 1-10 score) */
+export const HEALTH_START: Bounds = { lo: 0.1, hi: 4 }
 
 export const TIME_DUEL_MINUTES = 30
-export const CARBON_DUEL_KG = 2
+export const HEALTH_DUEL_POINTS = 3
 
 export const midpoint = (b: Bounds): number => (b.lo + b.hi) / 2
 
@@ -27,9 +27,9 @@ export function timeDuelPrice(b: Bounds): number {
   return midpoint(b) * (TIME_DUEL_MINUTES / 60)
 }
 
-export function carbonDuelPrice(b: Bounds): number {
-  return midpoint(b) * CARBON_DUEL_KG
+export function healthDuelPrice(b: Bounds): number {
+  return midpoint(b) * HEALTH_DUEL_POINTS
 }
 
 export const DEFAULT_TIME_RATE = midpoint(TIME_START)
-export const DEFAULT_CARBON_RATE = midpoint(CARBON_START)
+export const DEFAULT_HEALTH_RATE = midpoint(HEALTH_START)

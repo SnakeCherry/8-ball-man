@@ -3,10 +3,11 @@ import type { BadgeDef, ChoiceRecord } from './types'
 export const BADGES: BadgeDef[] = [
   { id: 'penny', name: 'Penny Pincher', line: 'You put money first on 2 or more choices.', icon: 'pound' },
   { id: 'timesaver', name: 'Time Saver', line: 'You put your time first on 2 or more choices.', icon: 'clock' },
-  { id: 'green', name: 'Green Mover', line: 'You put your footprint first on 2 or more choices.', icon: 'leaf' },
-  { id: 'sharp', name: 'Sharp Eye', line: 'Three out of three. You know your costs well.', icon: 'eye' },
+  { id: 'health', name: 'Health Kick', line: 'You put your health first on 2 or more choices.', icon: 'heart' },
+  { id: 'sharp', name: 'Sharp Eye', line: 'You guessed a monthly cost to within 10%.', icon: 'eye' },
   { id: 'worth', name: 'Worth It', line: 'You paid more for time back, and it was good value.', icon: 'star' },
-  { id: 'balanced', name: 'Balanced Mover', line: 'You have given money, time and footprint a turn.', icon: 'scale' },
+  { id: 'balanced', name: 'Balanced Mover', line: 'You have given money, time and health a turn.', icon: 'scale' },
+  { id: 'streak', name: 'Hot Streak', line: '5 close guesses in a row.', icon: 'star' },
 ]
 
 export function badgeById(id: string): BadgeDef {
@@ -16,14 +17,15 @@ export function badgeById(id: string): BadgeDef {
 }
 
 /** Badges describe how someone decides, never how little they spent. */
-export function evaluateBadges(history: ChoiceRecord[]): string[] {
+export function evaluateBadges(history: ChoiceRecord[], bestStreak = 0): string[] {
   const count = (p: ChoiceRecord['priority']) => history.filter((h) => h.priority === p).length
   const earned: string[] = []
   if (count('money') >= 2) earned.push('penny')
   if (count('time') >= 2) earned.push('timesaver')
-  if (count('footprint') >= 2) earned.push('green')
-  if (history.some((h) => h.correctGuesses === 3)) earned.push('sharp')
+  if (count('health') >= 2) earned.push('health')
+  if (history.some((h) => h.guessErr <= 0.1)) earned.push('sharp')
   if (history.some((h) => h.verdict === 'good')) earned.push('worth')
-  if (count('money') >= 1 && count('time') >= 1 && count('footprint') >= 1) earned.push('balanced')
+  if (count('money') >= 1 && count('time') >= 1 && count('health') >= 1) earned.push('balanced')
+  if (bestStreak >= 5) earned.push('streak')
   return earned
 }

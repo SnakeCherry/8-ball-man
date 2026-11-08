@@ -1,9 +1,9 @@
 import { PixelIcon } from './ui'
 
-const STEPS = ['Guess', 'Reveal and pick']
+const STEPS = ['Guess', 'Results', 'Pick']
 
-/** Back button plus "where am I" for the two-step decision flow. */
-export function FlowBar({ step, onBack, backLabel }: { step: 0 | 1; onBack: () => void; backLabel: string }) {
+/** Back button plus "where am I" for the three-step decision flow. */
+export function FlowBar({ step, onBack, backLabel }: { step: 0 | 1 | 2; onBack: () => void; backLabel: string }) {
   return (
     <div className="mb-5 flex items-center justify-between gap-3">
       <button

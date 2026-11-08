@@ -1,3 +1,6 @@
+import type { IconName } from './pixelart'
+import { artSvg } from './pixelart'
+import { play } from './sound'
 import { spriteSvg } from './sprites'
 import type { SpriteName } from './sprites'
 
@@ -28,7 +31,8 @@ const snap = (n: number) => Math.round(n / 4) * 4
 
 export interface BurstOptions {
   icon?: SpriteName
-  emoji?: string
+  /** a pixel-art icon to float up, by name (see src/lib/pixelart.ts) */
+  art?: IconName
   count?: number
   spread?: number
 }
@@ -60,7 +64,7 @@ export function burst(x: number, y: number, opts: BurstOptions = {}): void {
   icon.className = 'fx-icon'
   icon.style.left = `${x}px`
   icon.style.top = `${y}px`
-  if (opts.emoji) icon.textContent = opts.emoji
+  if (opts.art) icon.innerHTML = artSvg(opts.art, 3)
   else icon.innerHTML = spriteSvg(opts.icon ?? 'sparkle', 5, '#0a0a0a')
   made.push(icon)
 
@@ -84,9 +88,10 @@ export function installFx(): () => void {
     const keyboard = e.clientX === 0 && e.clientY === 0
     const x = keyboard ? r.left + r.width / 2 : e.clientX
     const y = keyboard ? r.top + r.height / 2 : e.clientY
-    const emoji = btn.dataset.emoji
+    play('click')
+    const art = btn.dataset.art as IconName | undefined
     const icon = btn.dataset.fx as SpriteName | undefined
-    burst(x, y, { emoji, icon: emoji ? undefined : (icon ?? 'sparkle') })
+    burst(x, y, { art, icon: art ? undefined : (icon ?? 'sparkle') })
   }
   document.addEventListener('click', onClick, true)
   return () => document.removeEventListener('click', onClick, true)

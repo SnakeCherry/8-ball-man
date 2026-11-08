@@ -1,12 +1,13 @@
 import { useState } from 'react'
+import { PixelArt } from '../components/PixelArt'
 import { PixelBar, PixelButton, PixelCard, PixelIcon, Label, Title } from '../components/ui'
 import { APP_NAME, GOAL_PRESETS, TAGLINE } from '../data/copy'
 import {
-  CARBON_DUEL_KG,
-  CARBON_START,
+  HEALTH_DUEL_POINTS,
+  HEALTH_START,
   TIME_DUEL_MINUTES,
   TIME_START,
-  carbonDuelPrice,
+  healthDuelPrice,
   midpoint,
   refine,
   timeDuelPrice,
@@ -17,8 +18,8 @@ import { isoInDays } from '../lib/goal'
 import { useAppStore } from '../store/useAppStore'
 
 const TIME_ROUNDS = 3
-const CARBON_ROUNDS = 2
-const DUELS = TIME_ROUNDS + CARBON_ROUNDS
+const HEALTH_ROUNDS = 2
+const DUELS = TIME_ROUNDS + HEALTH_ROUNDS
 const GOAL_STEP = DUELS + 1
 const MONEY_STEP = DUELS + 2
 
@@ -47,11 +48,11 @@ export function Onboarding() {
   const [money, setMoney] = useState(25)
 
   const timeAnswers = answers.slice(0, TIME_ROUNDS)
-  const carbonAnswers = answers.slice(TIME_ROUNDS, DUELS)
+  const healthAnswers = answers.slice(TIME_ROUNDS, DUELS)
   const timeB = replay(TIME_START, timeAnswers)
-  const carbonB = replay(CARBON_START, carbonAnswers)
+  const healthB = replay(HEALTH_START, healthAnswers)
   const timeRate = midpoint(timeB)
-  const carbonRate = midpoint(carbonB)
+  const healthRate = midpoint(healthB)
 
   const goBack = () => {
     // going back to duel n forgets duel n's answer, so you can re-answer it
@@ -72,7 +73,7 @@ export function Onboarding() {
         </PixelCard>
         <PixelCard>
           <Label>First, five quick questions</Label>
-          <p className="mt-2">They work out what your time and your footprint are worth to you. It takes about 30 seconds.</p>
+          <p className="mt-2">They work out what your time and your health are worth to you. It takes about 30 seconds.</p>
           <PixelButton className="mt-4 w-full" onClick={() => setStep(1)}>
             Start (30 sec)
           </PixelButton>
@@ -110,9 +111,9 @@ export function Onboarding() {
           ) : (
             <>
               <p className="mt-3 text-[22px] leading-tight">
-                Would you pay <b className="num">{gbp(carbonDuelPrice(carbonB))}</b> extra to cut {CARBON_DUEL_KG} kg of CO₂?
+                Would you pay <b className="num">{gbp(healthDuelPrice(healthB))}</b> extra for a choice that is {HEALTH_DUEL_POINTS} points healthier?
               </p>
-              <p className="mt-2 text-ink/70">That is roughly a 10 km car trip.</p>
+              <p className="mt-2 text-ink/70">Say, cooking a proper meal instead of ordering a takeaway.</p>
             </>
           )}
           <div className="mt-5 grid gap-3">
@@ -151,7 +152,7 @@ export function Onboarding() {
                 className="pbox pselect flex items-center justify-between p-3"
               >
                 <span className="text-[19px]">
-                  {g.emoji} {g.name}
+                  <PixelArt name={g.icon} size={2} /> {g.name}
                 </span>
                 <span className="num text-[24px] font-semibold leading-none">{gbp(g.target)}</span>
               </button>
@@ -192,9 +193,9 @@ export function Onboarding() {
         onClick={() =>
           finish({
             timeRate,
-            carbonRate,
+            healthRate,
             moneyLeft: money,
-            goal: { name: goal.name, emoji: goal.emoji, target: goal.target, saved: 0, dueISO: isoInDays(goal.days) },
+            goal: { name: goal.name, icon: goal.icon, target: goal.target, saved: 0, dueISO: isoInDays(goal.days) },
           })
         }
       >

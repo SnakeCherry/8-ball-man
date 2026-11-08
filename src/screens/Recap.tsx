@@ -1,14 +1,13 @@
 import { GutCard } from '../components/GutCard'
 import { VibeChips } from '../components/parts'
 import { PixelButton, PixelCard, PixelIcon, Label, Title } from '../components/ui'
-import { AXIS_LABEL, EMPTY_HISTORY, PRIORITY_CHIPS } from '../data/copy'
+import { EMPTY_HISTORY, PRIORITY_CHIPS } from '../data/copy'
 import { BADGES } from '../lib/badges'
-import { gbp, mins, round1 } from '../lib/format'
-import { AXES } from '../lib/scoring'
+import { gbp, mins } from '../lib/format'
 import { useAppStore } from '../store/useAppStore'
 
 export function Recap() {
-  const { history, badges, gut, priority } = useAppStore()
+  const { history, badges, gut, priority, streak, bestStreak } = useAppStore()
   const setPriority = useAppStore((s) => s.setPriority)
   const go = useAppStore((s) => s.go)
 
@@ -28,11 +27,12 @@ export function Recap() {
   }
 
   return (
-    <div className="space-y-6">
-      <Title>Your recap</Title>
+    <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <Title className="lg:col-span-2">Your recap</Title>
 
-      <GutCard gut={gut} />
+      <GutCard gut={gut} streak={streak} bestStreak={bestStreak} />
 
+      <div className="space-y-2">
       <div className="grid grid-cols-2 gap-3">
         <PixelCard>
           <Label>vs your usual</Label>
@@ -50,9 +50,10 @@ export function Recap() {
           <p className="text-[13px]">{minutes >= 0 ? 'bought back' : 'spent'}</p>
         </PixelCard>
       </div>
-      <p className="-mt-3 text-[14px] text-ink/70">
+      <p className="text-[14px] text-ink/70">
         Across {history.length} choices, measured against your usual option for each.
       </p>
+      </div>
 
       <PixelCard>
         <Label>What you put first</Label>
@@ -69,24 +70,9 @@ export function Recap() {
         </ul>
       </PixelCard>
 
-      <PixelCard>
-        <Label>Your gut, by axis</Label>
-        <ul className="mt-3 space-y-1 text-[16px]">
-          {AXES.map((a) => (
-            <li key={a} className="num flex justify-between">
-              <span>{AXIS_LABEL[a].short}</span>
-              <span>
-                {gut[a].right} / {gut[a].total}
-                {gut[a].total ? ` (${round1((gut[a].right / gut[a].total) * 100)}%)` : ''}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </PixelCard>
-
-      <div>
+      <div className="lg:col-span-2">
         <Title className="mb-3">Badges</Title>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {BADGES.map((b) => {
             const got = badges.includes(b.id)
             return (
@@ -106,7 +92,7 @@ export function Recap() {
         <VibeChips value={priority} onChange={setPriority} />
       </PixelCard>
 
-      <PixelButton className="w-full" onClick={() => go('home')}>
+      <PixelButton className="w-full lg:col-span-2" onClick={() => go('home')}>
         Pick a decision
       </PixelButton>
     </div>
