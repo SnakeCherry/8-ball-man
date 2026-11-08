@@ -1,10 +1,9 @@
 import { getDecision } from '../data/decisions'
 import { plural, timeSavedText } from './format'
 import type { IconName } from './pixelart'
-import type { ChoiceRecord, Decision, Goal, Option, Priority } from './types'
+import type { ChoiceRecord, Decision, Option, Priority } from './types'
 
 const DAY = 86_400_000
-const WEEK = 7 * DAY
 
 /** A past choice joined up with what was chosen and what the usual was. */
 export interface Entry {
@@ -73,53 +72,69 @@ export function personality(history: ChoiceRecord[]): Personality | null {
   return PERSONALITY[top.p]
 }
 
-export type PaceStatus = 'done' | 'ahead' | 'on' | 'behind' | 'unknown'
-export interface Pace {
-  status: PaceStatus
-  /** £ a week from your choices over the last four weeks */
-  weeklyGBP: number
-  /** £ a week needed to finish on the due date */
-  neededWeeklyGBP: number
-  /** when you would finish at your recent pace, or null if you are not saving */
-  projectedISO: string | null
-  /** days ahead (+) or behind (-) the due date at your recent pace */
-  daysDelta: number
+/* ---- the win-win score: how often you beat your usual on at least two of money, time and health ---- */
+
+export interface WinWin {
+  /** how many of money, time and health the choice beats your usual on (0-3) */
+  axes: number
+  /** two or more */
+  win: boolean
 }
 
-/** How the recent run of choices compares with what the goal needs. Needs two choices in four weeks to judge. */
-export function paceInfo(goal: Goal, history: ChoiceRecord[], now = Date.now()): Pace {
-  const remaining = Math.max(0, goal.target - goal.saved)
-  const daysToDue = Math.max(1, (new Date(goal.dueISO).getTime() - now) / DAY)
-  const neededWeeklyGBP = remaining / (daysToDue / 7)
-  const base = { weeklyGBP: 0, neededWeeklyGBP, projectedISO: null, daysDelta: 0 }
-  if (remaining === 0) return { ...base, status: 'done' }
-
-  const recent = history.filter((h) => now - h.at <= 4 * WEEK)
-  if (recent.length < 2) return { ...base, status: 'unknown' }
-  const weeks = Math.max(1, (now - Math.min(...recent.map((h) => h.at))) / WEEK)
-  const weeklyGBP = recent.reduce((s, h) => s + h.savedGBP, 0) / weeks
-  if (weeklyGBP <= 0) return { ...base, weeklyGBP, status: 'behind' }
-
-  const projected = now + (remaining / weeklyGBP) * WEEK
-  const daysDelta = Math.round((new Date(goal.dueISO).getTime() - projected) / DAY)
-  return {
-    status: daysDelta >= 3 ? 'ahead' : daysDelta >= -3 ? 'on' : 'behind',
-    weeklyGBP,
-    neededWeeklyGBP,
-    projectedISO: new Date(projected).toISOString(),
-    daysDelta,
-  }
+/** Better means at least 1p cheaper, 1 minute quicker, or 1 health point higher. */
+export function winWin(e: Entry): WinWin {
+  const axes = [e.usual.costGBP - e.chosen.costGBP >= 0.01, e.usual.timeMin - e.chosen.timeMin >= 1, e.chosen.health - e.usual.health >= 1].filter(Boolean).length
+  return { axes, win: axes >= 2 }
 }
 
-export interface Milestone {
-  /** 0.25, 0.5, 0.75 or 1 */
-  at: number
-  gbp: number
-  reached: boolean
+export interface WinWinScore {
+  /** null until there are three choices to judge */
+  pct: number | null
+  wins: number
+  of: number
+  tier: string
 }
 
-export function milestones(goal: Goal): Milestone[] {
-  return [0.25, 0.5, 0.75, 1].map((at) => ({ at, gbp: Math.round(goal.target * at), reached: goal.saved >= goal.target * at - 0.005 }))
+export const WIN_WIN_MIN = 3
+
+export function winWinScore(entries: Entry[]): WinWinScore {
+  const wins = entries.filter((e) => winWin(e).win).length
+  const of = entries.length
+  if (of < WIN_WIN_MIN) return { pct: null, wins, of, tier: 'Keep going' }
+  const pct = Math.round((wins / of) * 100)
+  return { pct, wins, of, tier: pct < 25 ? 'Rookie' : pct < 50 ? 'Switcher' : pct < 75 ? 'Optimiser' : 'Trade-off Pro' }
+}
+
+/* ---- the quadrant map ---- */
+
+export type Quadrant = 'win' | 'healthier' | 'cheaper' | 'neither' | 'same'
+
+export interface QuadPoint {
+  entry: Entry
+  /** money saved as a percentage of the usual price, -100 (costs far more) to 100 (free) */
+  x: number
+  /** health points gained (+) or lost (-) against your usual */
+  y: number
+  /** time saved (+) or extra (-) as a percentage of the usual time, -100 to 100 */
+  timePct: number
+  quadrant: Quadrant
+}
+
+const clamp = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n))
+
+/**
+ * Where each choice sits against your usual. Money is a percentage of the usual price, so a £450 console and a
+ * £1.80 coffee share one scale. Top right (cheaper and healthier) is the sweet spot.
+ */
+export function quadrantPoints(entries: Entry[], limit = 12): QuadPoint[] {
+  return entries.slice(-limit).map((entry) => {
+    const { usual, chosen } = entry
+    const x = usual.costGBP > 0 ? clamp(((usual.costGBP - chosen.costGBP) / usual.costGBP) * 100, -100, 100) : chosen.costGBP > 0 ? -100 : 0
+    const y = clamp(chosen.health - usual.health, -9, 9)
+    const timePct = usual.timeMin > 0 ? clamp(((usual.timeMin - chosen.timeMin) / usual.timeMin) * 100, -100, 100) : 0
+    const quadrant: Quadrant = x === 0 && y === 0 ? 'same' : x > 0 && y > 0 ? 'win' : y > 0 ? 'healthier' : x > 0 ? 'cheaper' : 'neither'
+    return { entry, x, y, timePct, quadrant }
+  })
 }
 
 /** "today", "yesterday", "3 days ago", "2 weeks ago". */
@@ -133,11 +148,12 @@ export function ago(ts: number, now = Date.now()): string {
 }
 
 /** What the "Share" button copies. */
-export function wrappedText(appName: string, p: Personality | null, t: Totals): string {
+export function wrappedText(appName: string, p: Personality | null, t: Totals, score?: WinWinScore): string {
   const bits = [
     `${t.savedGBP >= 0 ? 'saved' : 'spent'} £${Math.abs(t.savedGBP).toFixed(2)} vs my usual`,
     timeSavedText(t.minutes),
     `${t.health >= 0 ? '+' : '-'}${Math.abs(t.health)} health points`,
+    ...(score && score.pct !== null ? [`a ${score.pct}% win-win score (${score.tier})`] : []),
   ]
   return `My ${appName} wrapped${p ? `: ${p.title}` : ''}. ${bits.join(', ')} over ${t.choices} ${plural(t.choices, 'choice')}.`
 }

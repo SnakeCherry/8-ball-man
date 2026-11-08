@@ -1,133 +1,102 @@
-import { useState } from 'react'
-import { PixelArt } from '../components/PixelArt'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { OptionStats } from '../components/parts'
-import { TradeoffTriangle } from '../components/TradeoffTriangle'
+import { PixelArt } from '../components/PixelArt'
+import { PriorityMixer } from '../components/PriorityMixer'
 import { PixelButton, PixelCard, Label, Title } from '../components/ui'
 import { PRIORITY_NAME } from '../data/copy'
 import { getDecision } from '../data/decisions'
-import { recommendationSentence } from '../lib/explain'
-import { gbp, mins } from '../lib/format'
+import { adviceFor, buildFacts, plainAdvice } from '../lib/advice'
 import { suggestFor } from '../lib/suggest'
-import type { Option } from '../lib/types'
 import { moneyRatio, useAppStore } from '../store/useAppStore'
 
-/** The priority screen: what matters most this week, then take the (re-ranked) suggestion. */
+/** The priority screen: slide money, time and health to say what matters, watch the options re-rank, then take one. */
 export function Choose() {
-  const { decisionId, priority, weights, vibeHistory, moneyLeft, usual } = useAppStore()
-  const setPriority = useAppStore((s) => s.setPriority)
+  const decisionId = useAppStore((s) => s.decisionId)
+  const priority = useAppStore((s) => s.priority)
+  const weights = useAppStore((s) => s.weights)
+  const vibeHistory = useAppStore((s) => s.vibeHistory)
+  const moneyLeft = useAppStore((s) => s.moneyLeft)
+  const usual = useAppStore((s) => s.usual)
   const setWeights = useAppStore((s) => s.setWeights)
   const setUsual = useAppStore((s) => s.setUsual)
   const commit = useAppStore((s) => s.commitChoice)
   const [manual, setManual] = useState<string | null>(null)
-  const [showOthers, setShowOthers] = useState(false)
-  if (!decisionId) return null
+  const [showUsual, setShowUsual] = useState(false)
+  const [advice, setAdvice] = useState('')
 
-  const d = getDecision(decisionId)
+  const d = decisionId ? getDecision(decisionId) : null
+  const sug = d ? suggestFor(d, priority, vibeHistory, moneyRatio(moneyLeft), weights) : null
+  const effective = weights ?? sug?.blend.weights ?? null
+  const adviceKey = d && effective ? `${d.id}|${effective.cost.toFixed(2)}|${effective.time.toFixed(2)}|${effective.health.toFixed(2)}` : ''
+
+  // the plain-English line is instant and always right; Qwen's wording replaces it a moment after you stop sliding
+  useEffect(() => {
+    if (!d || !effective) return
+    const facts = buildFacts(d, effective)
+    setAdvice(plainAdvice(facts))
+    let live = true
+    const t = window.setTimeout(() => void adviceFor(facts).then((text) => live && setAdvice(text)), 650)
+    return () => {
+      live = false
+      window.clearTimeout(t)
+    }
+    // adviceKey captures everything the facts depend on
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adviceKey])
+
+  if (!d || !sug || !effective) return null
+  const { blend, suggested } = sug
   const usualId = usual[d.id] ?? d.usualId
   const usualOpt = d.options.find((o) => o.id === usualId)!
-  const { blend, ranking, suggested, others } = suggestFor(d, priority, vibeHistory, moneyRatio(moneyLeft), weights)
-  // the suggestion is preselected until the user picks something else themselves
+  // the best fit is preselected until the student picks something else themselves
   const selected = d.options.find((o) => o.id === (manual ?? suggested.id)) ?? suggested
   const last = vibeHistory.at(-1)
 
   const notes: string[] = []
-  if (last) notes.push(`Last time you chose ${PRIORITY_NAME[last]}.`)
-  if (blend.historyShifted) notes.push("Your past choices lean that way a little, so we've weighed it in.")
-  if (blend.moneyNudged) notes.push('Money left is low, so cost counts for a bit more.')
-
-  const drag = (w: Parameters<typeof setWeights>[0]) => {
-    setWeights(w)
-    setManual(null)
-  }
-
-  const card = (o: Option, badge?: string) => {
-    const delta = usualOpt.costGBP - o.costGBP
-    const dTime = usualOpt.timeMin - o.timeMin
-    return (
-      <button
-        key={o.id}
-        type="button"
-        aria-pressed={selected.id === o.id}
-        data-fx="pound"
-        data-art={o.icon}
-        onClick={() => setManual(o.id)}
-        className="pbox pselect p-3"
-      >
-        <div className="flex items-start justify-between gap-2 pr-5">
-          <p className="text-[20px] leading-tight">
-            <span className="emoji-drive" aria-hidden="true">
-              <PixelArt name={o.icon} size={2} />
-            </span>{' '}
-            {o.name}
-          </p>
-          {badge && (
-            <span className="shrink-0 border-4 border-ink bg-white px-1 font-pixel text-[9px] uppercase">{badge}</span>
-          )}
-        </div>
-        <OptionStats option={o} />
-        <p className="num mt-2 text-[14px]">
-          {o.id === usualId
-            ? 'Your usual'
-            : `vs your usual: ${delta >= 0 ? '−' : '+'}${gbp(delta)}, ${mins(dTime)} ${dTime >= 0 ? 'faster' : 'slower'}`}
-        </p>
-      </button>
-    )
-  }
+  if (last) notes.push(`Last time you put ${PRIORITY_NAME[last]} first.`)
+  if (blend.historyShifted) notes.push("Your past choices lean that way a little, so we've started the sliders there.")
+  if (blend.moneyNudged) notes.push('Money left is low, so money starts a bit higher.')
 
   return (
-    <div className="page-fill-flow lg:grid lg:grid-cols-2 lg:items-center lg:gap-12">
-      <section aria-labelledby="step-priority">
+    <div className="page-fill-flow lg:grid lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-12">
+      <section aria-labelledby="step-priority" className="min-w-0">
         <Title className="mb-1">
           <span id="step-priority">What matters most to you this week?</span>
         </Title>
-        <p className="mb-3 text-[15px] text-ink/70">Drag the handle. Your options sit near what they are best at.</p>
-        <TradeoffTriangle weights={weights ?? blend.weights} onChange={drag} options={d.options} bestId={suggested.id} />
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <p className="num text-[15px]">
-            {Math.round((weights ?? blend.weights).cost * 100)}% money · {Math.round((weights ?? blend.weights).time * 100)}% time ·{' '}
-            {Math.round((weights ?? blend.weights).health * 100)}% health
-          </p>
-          <button
-            type="button"
-            className="pbtn pbtn-white !min-h-[36px] !px-2 !py-1 text-[14px]"
-            onClick={() => {
-              setPriority('balanced')
-              setManual(null)
-            }}
-          >
-            Even mix
-          </button>
-        </div>
-        {notes.length > 0 && <p className="mt-3 text-[15px] text-ink/80">{notes.join(' ')}</p>}
+        <p className="mb-4 text-[15px] text-ink/70">Slide each one. The options re-rank as you go.</p>
+        <PriorityMixer
+          key={d.id}
+          options={d.options}
+          weights={effective}
+          selectedId={selected.id}
+          onSelect={setManual}
+          onChange={(w) => {
+            setWeights(w)
+            setManual(null)
+          }}
+        />
       </section>
 
-      <div className="space-y-6">
-      <section aria-label="Our suggestion" className="space-y-3">
-        <PixelCard>
+      <div className="min-w-0 space-y-6 lg:sticky lg:top-6">
+        <PixelCard className="space-y-3 bg-white">
           <Label>Our suggestion</Label>
-          <p className="mt-2 text-[19px] leading-snug">{recommendationSentence(ranking)}</p>
+          <p className="flex items-center gap-3 text-[24px] leading-tight">
+            <PixelArt name={suggested.icon} size={3} />
+            {suggested.name}
+          </p>
+          <p className="text-[18px] leading-snug" aria-live="polite">
+            {advice}
+          </p>
+          {notes.length > 0 && <p className="text-[14px] text-ink/70">{notes.join(' ')}</p>}
         </PixelCard>
-        {card(suggested, ranking.close ? 'Close call' : 'Best fit')}
-      </section>
 
-      <div>
-        <button
-          type="button"
-          aria-expanded={showOthers}
-          onClick={() => setShowOthers((v) => !v)}
-          className="pbtn pbtn-white w-full"
-        >
-          {showOthers ? 'Hide other options' : 'See other options'}
-        </button>
-
-        {showOthers && (
-          <div className="mt-4 space-y-4">
-            <div className="grid gap-4">{others.map((o) => card(o))}</div>
-            <div className="text-[15px]">
-              <p>
-                Your usual for this: <b>{usualOpt.name}</b>. We measure your savings against it.
-              </p>
+        <div>
+          <button type="button" aria-expanded={showUsual} onClick={() => setShowUsual((v) => !v)} className="pbtn pbtn-white w-full">
+            {showUsual ? 'Hide usual' : `Your usual: ${usualOpt.name}`}
+          </button>
+          {showUsual && (
+            <div className="mt-3 text-[15px]">
+              <p>We measure your savings against your usual. Change it if it isn't right.</p>
               <div className="mt-2 grid grid-cols-3 gap-3" role="group" aria-label="Change your usual option">
                 {d.options.map((o) => (
                   <button
@@ -142,11 +111,10 @@ export function Choose() {
                 ))}
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      </div>
       {/* portalled: the screen wrapper animates a transform, which would trap a fixed child */}
       {createPortal(
         <div className="fixed inset-x-0 bottom-0 z-10 border-t-4 border-ink bg-white p-3">

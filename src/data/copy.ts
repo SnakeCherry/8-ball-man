@@ -1,4 +1,3 @@
-import type { IconName } from '../lib/pixelart'
 import type { Axis, Priority, Verdict } from '../lib/types'
 
 /** All voice strings live here: calm, warm, light. Numbers first, no moralising. */
@@ -40,13 +39,6 @@ export const VERDICT_LINE: Record<Verdict, (perHour: string, userRate: string) =
 }
 
 export const EMPTY_HISTORY = 'Nothing here yet. Your first choice will show up in this space.'
-
-export const GOAL_PRESETS: { name: string; icon: IconName; target: number; days: number }[] = [
-  { name: 'Festival ticket', icon: 'ticket', target: 120, days: 60 },
-  { name: 'Interrail trip', icon: 'train', target: 400, days: 120 },
-  { name: 'Rent buffer', icon: 'home', target: 250, days: 75 },
-  { name: 'Treat fund', icon: 'gift', target: 60, days: 30 },
-]
 
 /** Game-show host lines read aloud on the reveal (when sound is on). */
 export const HOST_LINE: Record<'bullseye' | 'close' | 'near' | 'off', (real: string) => string> = {

@@ -1,6 +1,5 @@
-import { PRIORITY_CHIPS } from '../data/copy'
 import { gbp, mins, score } from '../lib/format'
-import type { Axis, Option, Priority } from '../lib/types'
+import type { Axis, Option } from '../lib/types'
 import { PixelIcon } from './ui'
 import type { SpriteName } from './ui'
 
@@ -23,23 +22,5 @@ export function OptionStats({ option, best }: { option: Option; best?: Partial<R
         </li>
       ))}
     </ul>
-  )
-}
-
-export function VibeChips({ value, onChange }: { value: Priority; onChange: (p: Priority) => void }) {
-  return (
-    <div className="grid grid-cols-2 gap-2" role="group" aria-label="What matters this week">
-      {PRIORITY_CHIPS.map((c) => (
-        <button
-          key={c.id}
-          type="button"
-          aria-pressed={value === c.id}
-          onClick={() => onChange(c.id)}
-          className="pbox-flat pselect px-3 py-2 text-[15px] leading-tight"
-        >
-          {c.label}
-        </button>
-      ))}
-    </div>
   )
 }

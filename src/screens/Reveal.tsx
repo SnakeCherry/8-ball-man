@@ -3,11 +3,11 @@ import { PixelArt } from '../components/PixelArt'
 import { CountUp } from '../components/CountUp'
 import { Podium } from '../components/Podium'
 import { PixelButton, PixelCard, PixelIcon, Label } from '../components/ui'
-import { TripRace } from '../components/TripRace'
+import { InfoPanel } from '../components/InfoPanel'
 import { WarmupTrack } from '../components/WarmupTrack'
 import { HOST_LINE, PRIORITY_NAME } from '../data/copy'
 import { getDecision } from '../data/decisions'
-import { recommendationSentence } from '../lib/explain'
+import { adviceFor, buildFacts, plainAdvice } from '../lib/advice'
 import { gbp } from '../lib/format'
 import { reducedMotion } from '../lib/fx'
 import { BAND_LABEL, CLOSE, band, closeness, guessError, monthlyCost } from '../lib/guess'
@@ -26,7 +26,7 @@ const AXIS_GAP = 1.0 // seconds between podiums
 export function Reveal() {
   const decisionId = useAppStore((s) => s.decisionId)
   const guess = useAppStore((s) => s.guess)
-  const goal = useAppStore((s) => s.goal)
+  const session = useAppStore((s) => s.session)
   const usual = useAppStore((s) => s.usual)
   const priority = useAppStore((s) => s.priority)
   const vibeHistory = useAppStore((s) => s.vibeHistory)
@@ -44,26 +44,46 @@ export function Reveal() {
     const t = window.setTimeout(() => setScored(true), 900)
     return () => window.clearTimeout(t)
   }, [skipped])
+  // the recommendation in plain English: instant from the numbers, then Qwen's wording once it has been checked against them
+  const [advice, setAdvice] = useState('')
+  useEffect(() => {
+    if (!decisionId) return
+    const dd = getDecision(decisionId)
+    const facts = buildFacts(dd, suggestFor(dd, priority, vibeHistory, moneyRatio(moneyLeft)).blend.weights)
+    setAdvice(plainAdvice(facts))
+    let live = true
+    void adviceFor(facts).then((text) => live && setAdvice(text))
+    return () => {
+      live = false
+    }
+  }, [decisionId, priority, vibeHistory, moneyLeft])
+
   // once the score lands, the host reads out the result (if you guessed) and then our suggestion
   const announced = useRef(false)
+  const mounted = useRef(true)
   useEffect(() => {
     if (!scored || announced.current || !decisionId) return
     announced.current = true
     const dd = getDecision(decisionId)
     const u = dd.options.find((o) => o.id === (usual[dd.id] ?? dd.usualId))!
     const sug = suggestFor(dd, priority, vibeHistory, moneyRatio(moneyLeft))
-    const line = `We suggest ${sug.suggested.name}. ${recommendationSentence(sug.ranking)}`
-    if (guess === null) {
-      play('bullseye')
-      void speak(line)
-    } else {
-      const bnd = band(guessError(guess, monthlyCost(u, dd)))
-      play(bnd === 'bullseye' || bnd === 'close' ? 'bullseye' : 'miss')
-      void speak(`${HOST_LINE[bnd](gbp(monthlyCost(u, dd)))} ${line}`)
-    }
+    const facts = buildFacts(dd, sug.blend.weights)
+    const bnd = guess === null ? null : band(guessError(guess, monthlyCost(u, dd)))
+    play(bnd === null || bnd === 'bullseye' || bnd === 'close' ? 'bullseye' : 'miss')
+    void adviceFor(facts).then((text) => {
+      if (!mounted.current) return
+      const line = `We suggest ${sug.suggested.name}. ${text}`
+      void speak(bnd === null ? line : `${HOST_LINE[bnd](gbp(monthlyCost(u, dd)))} ${line}`)
+    })
   }, [scored, decisionId, guess, usual, priority, vibeHistory, moneyLeft])
   // leaving the screen stops the voice
-  useEffect(() => () => stopSpeaking(), [])
+  useEffect(
+    () => () => {
+      mounted.current = false
+      stopSpeaking()
+    },
+    [],
+  )
   if (!decisionId) return null
 
   const d = getDecision(decisionId)
@@ -74,8 +94,8 @@ export function Reveal() {
   const sw = bestSwitch(d, usualOpt.id)
   const isClose = err <= CLOSE
   const b = band(err)
-  const { suggested, ranking } = suggestFor(d, priority, vibeHistory, moneyRatio(moneyLeft))
-  const spoken = `We suggest ${suggested.name}. ${recommendationSentence(ranking)}`
+  const { suggested } = suggestFor(d, priority, vibeHistory, moneyRatio(moneyLeft))
+  const spoken = `We suggest ${suggested.name}. ${advice}`
   const gap = skipped ? 0 : AXIS_GAP
   const base = skipped ? 0 : 0.9
   const streakNow = scored ? nextStreak(streakStart, [isClose]) : streakStart
@@ -86,6 +106,15 @@ export function Reveal() {
 
   return (
     <div className="page-fill-flow justify-between" onClick={skipped ? undefined : () => setSkipped(true)}>
+      {session.length > 0 && (
+        <PixelCard className="bg-lime">
+          <p className="text-[19px] leading-snug">
+            Done with <b>{getDecision(session.at(-1)!.decisionId).title}</b>: you chose{' '}
+            <b>{getDecision(session.at(-1)!.decisionId).options.find((o) => o.id === session.at(-1)!.optionId)?.name}</b>. Now{' '}
+            <b>{d.title}</b>.
+          </p>
+        </PixelCard>
+      )}
       <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
       <div className="flex flex-col gap-6 [&>:last-child]:flex-1">
       {guess === null ? (
@@ -105,7 +134,7 @@ export function Reveal() {
         </p>
         {scored && (
           <div className="anim-pop mt-3 space-y-2">
-            <p className="text-[18px] leading-snug">{habitLine(d, usualOpt, goal)}</p>
+            <p className="text-[18px] leading-snug">{habitLine(d, usualOpt)}</p>
             {sw && (
               <p className="text-[18px] leading-snug">
                 <PixelArt name={sw.option.icon} size={2} /> {sw.option.name} would save about <b className="num">{gbp(sw.monthlyGBP)}</b>{perMonth(d)}.
@@ -148,13 +177,13 @@ export function Reveal() {
                 {err === 0 ? 'Spot on.' : `${gbp(Math.abs(guess - truth))} too ${guess > truth ? 'high' : 'low'}.`}
               </span>
             </p>
-            <p className="text-[18px] leading-snug">{habitLine(d, usualOpt, goal)}</p>
+            <p className="text-[18px] leading-snug">{habitLine(d, usualOpt)}</p>
           </div>
         )}
 
         <WarmupTrack
           pos={scored ? closeness(err) : 0}
-          goalIcon={goal?.icon ?? 'flag'}
+          goalIcon="flag"
           mood={scored ? (isClose ? 'hop' : 'shake') : null}
           moodKey={scored ? 1 : 0}
         />
@@ -184,16 +213,16 @@ export function Reveal() {
           <PixelArt name={suggested.icon} size={4} />
           {suggested.name}
         </p>
-        <p className="text-[17px] leading-snug">{recommendationSentence(ranking)}</p>
+        <p className="text-[17px] leading-snug" aria-live="polite">
+          {advice}
+        </p>
         <p className="text-[14px] text-ink/70">{basis} You can change that on the next screen.</p>
         <PixelButton className="w-full" data-fx="star" onClick={() => go('priority')}>
           Next: what matters this week?
         </PixelButton>
       </PixelCard>
       </div>
-      <PixelCard>
-        <TripRace options={d.options} destination="flag" autoStart={scored} />
-      </PixelCard>
+      <InfoPanel decision={d} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

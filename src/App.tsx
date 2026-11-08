@@ -6,7 +6,7 @@ import { PixelIcon } from './components/ui'
 import type { SpriteName } from './components/ui'
 import { installFx } from './lib/fx'
 import { isMuted, setMuted, subscribeMuted } from './lib/sound'
-import { GoalScreen } from './screens/Goal'
+import { Result } from './screens/Result'
 import { Home } from './screens/Home'
 import { Onboarding } from './screens/Onboarding'
 import { Choose } from './screens/Choose'
@@ -18,7 +18,6 @@ import type { Screen } from './store/useAppStore'
 
 const TABS: { id: Screen; label: string; icon: SpriteName }[] = [
   { id: 'home', label: 'Home', icon: 'home' },
-  { id: 'goal', label: 'Goal', icon: 'star' },
   { id: 'recap', label: 'Recap', icon: 'chart' },
 ]
 
@@ -32,6 +31,9 @@ export default function App() {
   const screen = useAppStore((s) => s.screen)
   const onboarded = useAppStore((s) => s.onboarded)
   const streak = useAppStore((s) => s.streak)
+  const guess = useAppStore((s) => s.guess)
+  const queueLen = useAppStore((s) => s.queue.length)
+  const sessionLen = useAppStore((s) => s.session.length)
   const go = useAppStore((s) => s.go)
 
   useEffect(() => installFx(), [])
@@ -80,7 +82,16 @@ export default function App() {
         // how much of the window is taken by the header, padding, bar and nav, so pages can fill the rest (see .page-fill)
         style={{ ['--chrome' as string]: screen === 'priority' ? '290px' : flow ? '195px' : '205px' }}
       >
-        {flow && <FlowBar step={flow.step} onBack={back} backLabel={backLabel} />}
+        {flow && (
+          <FlowBar
+            // a habit made from speech has no guess round, so its bar starts at Results
+            step={guess === null && screen !== 'predict' ? flow.step - 1 : flow.step}
+            steps={guess === null && screen !== 'predict' ? ['Results', 'Pick'] : undefined}
+            habit={sessionLen + queueLen > 0 ? { n: sessionLen + 1, of: sessionLen + 1 + queueLen } : undefined}
+            onBack={back}
+            backLabel={backLabel}
+          />
+        )}
         {/* keyed so each screen (and each guess question) snaps in with a stepped slide */}
         {location.hash === '#icons' ? (
           <IconGallery />
@@ -95,7 +106,7 @@ export default function App() {
           {screen === 'predict' && <Predict />}
           {screen === 'reveal' && <Reveal />}
           {screen === 'priority' && <Choose />}
-          {screen === 'goal' && <GoalScreen />}
+          {screen === 'result' && <Result />}
           {screen === 'recap' && <Recap />}
         </div>
         )}
@@ -103,7 +114,7 @@ export default function App() {
 
       {showTabs && (
         <nav className="fixed inset-x-0 bottom-0 z-10 border-t-4 border-ink bg-white" aria-label="Main">
-          <div className="mx-auto grid max-w-xl grid-cols-3">
+          <div className="mx-auto grid max-w-md grid-cols-2">
             {TABS.map((t) => {
               const on = screen === t.id
               return (

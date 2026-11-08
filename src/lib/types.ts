@@ -27,14 +27,6 @@ export interface Decision {
   usualId: string
 }
 
-export interface Goal {
-  name: string
-  icon: IconName
-  target: number
-  saved: number
-  dueISO: string
-}
-
 export interface ChoiceRecord {
   decisionId: string
   optionId: string
@@ -45,11 +37,4 @@ export interface ChoiceRecord {
   minutesSaved: number
   verdict: Verdict | null
   at: number
-}
-
-export interface BadgeDef {
-  id: string
-  name: string
-  line: string
-  icon: 'pound' | 'clock' | 'heart' | 'eye' | 'star' | 'scale'
 }

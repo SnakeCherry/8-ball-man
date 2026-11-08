@@ -1,19 +1,18 @@
 import { useState } from 'react'
 import { ConveyorBelt } from '../components/ConveyorBelt'
-import { PixelArt } from '../components/PixelArt'
 import { VoiceTell } from '../components/VoiceTell'
-import { PixelBar, PixelButton, PixelCard, Label } from '../components/ui'
+import { PixelButton, PixelCard, Label } from '../components/ui'
 import { PRIORITY_NAME } from '../data/copy'
 import { DECISIONS, SOURCE_NOTE } from '../data/decisions'
-import { gbp } from '../lib/format'
-import { daysLeft, progress } from '../lib/goal'
+import { gbp, mins } from '../lib/format'
+import { resolveHistory, totals } from '../lib/recap'
 import type { Decision } from '../lib/types'
 import { useAppStore } from '../store/useAppStore'
 
 const PICKS = 3
 
 export function Home() {
-  const { goal, moneyLeft, vibeHistory, history } = useAppStore()
+  const { moneyLeft, vibeHistory, history, usual } = useAppStore()
   const startDecision = useAppStore((s) => s.startDecision)
   const startCustom = useAppStore((s) => s.startCustom)
   const customDecisions = useAppStore((s) => s.customDecisions)
@@ -23,6 +22,7 @@ export function Home() {
   const [showMore, setShowMore] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const last = vibeHistory.at(-1)
+  const totalsNow = totals(history, resolveHistory(history, usual))
 
   const tried = (d: Decision) => history.filter((h) => h.decisionId === d.id).length
   // the belt carries every decision, the ones you've tried least first (stable in data order for ties)
@@ -43,19 +43,30 @@ export function Home() {
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr] xl:items-start">
         <VoiceTell />
         <div className="min-w-0 space-y-6">
-          {goal && (
+          {history.length > 0 && (
             <PixelCard>
-              <Label>Saving for</Label>
-              <div className="mt-2 flex items-baseline justify-between gap-2">
-                <p className="text-[20px]">
-                  <PixelArt name={goal.icon} size={2} /> {goal.name}
-                </p>
-                <p className="num text-[24px] font-semibold leading-none">
-                  {gbp(goal.saved)} / {gbp(goal.target)}
-                </p>
-              </div>
-              <PixelBar value={progress(goal)} className="mt-3" />
-              <p className="mt-2 text-[15px]">{daysLeft(goal)} days left</p>
+              <Label>Your week so far</Label>
+              <ul className="num mt-3 grid grid-cols-3 gap-2 text-center">
+                <li className="border-4 border-ink bg-white px-1 py-2 leading-tight">
+                  <span className="block text-[13px] text-ink/70">Money</span>
+                  <span className="block text-[20px] font-semibold">
+                    {totalsNow.savedGBP >= 0 ? '+' : '−'}
+                    {gbp(totalsNow.savedGBP)}
+                  </span>
+                </li>
+                <li className="border-4 border-ink bg-white px-1 py-2 leading-tight">
+                  <span className="block text-[13px] text-ink/70">Time</span>
+                  <span className="block text-[20px] font-semibold">{mins(totalsNow.minutes)}</span>
+                  <span className="block text-[12px] text-ink/70">{totalsNow.minutes >= 0 ? 'saved' : 'extra'}</span>
+                </li>
+                <li className="border-4 border-ink bg-white px-1 py-2 leading-tight">
+                  <span className="block text-[13px] text-ink/70">Health</span>
+                  <span className="block text-[20px] font-semibold">
+                    {totalsNow.health >= 0 ? '+' : '−'}
+                    {Math.abs(totalsNow.health)}
+                  </span>
+                </li>
+              </ul>
             </PixelCard>
           )}
 

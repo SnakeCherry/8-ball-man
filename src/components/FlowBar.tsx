@@ -3,7 +3,21 @@ import { PixelIcon } from './ui'
 const STEPS = ['Guess', 'Results', 'Pick']
 
 /** Back button plus "where am I" for the three-step decision flow. */
-export function FlowBar({ step, onBack, backLabel }: { step: 0 | 1 | 2; onBack: () => void; backLabel: string }) {
+export function FlowBar({
+  step,
+  steps = STEPS,
+  habit,
+  onBack,
+  backLabel,
+}: {
+  step: number
+  /** the step names, when a habit made from speech skips the guess */
+  steps?: string[]
+  /** "Habit 1 of 2" while several habits from one sentence are being worked through */
+  habit?: { n: number; of: number }
+  onBack: () => void
+  backLabel: string
+}) {
   return (
     <div className="mb-5 flex items-center justify-between gap-3">
       <button
@@ -15,8 +29,13 @@ export function FlowBar({ step, onBack, backLabel }: { step: 0 | 1 | 2; onBack: 
         <PixelIcon name="back" size={2} />
         Back
       </button>
+      {habit && (
+        <p className="num border-4 border-ink bg-lime px-2 py-1 font-pixel text-[10px] uppercase">
+          Habit {habit.n} of {habit.of}
+        </p>
+      )}
       <ol className="flex items-center gap-2" aria-label="Progress">
-        {STEPS.map((s, i) => (
+        {steps.map((s, i) => (
           <li
             key={s}
             aria-current={i === step ? 'step' : undefined}

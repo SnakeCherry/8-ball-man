@@ -73,7 +73,7 @@ function PlanPanel({
 
 /** The Home hero: say what you do, and Qwen prices it and finds a cheaper way. */
 export function VoiceTell() {
-  const startCustom = useAppStore((s) => s.startCustom)
+  const startQueue = useAppStore((s) => s.startQueue)
   const addCustoms = useAppStore((s) => s.addCustoms)
   const startDecision = useAppStore((s) => s.startDecision)
   const [said, setSaid] = useState('')
@@ -202,7 +202,7 @@ export function VoiceTell() {
         <div className="anim-pop space-y-3">
           {plans.length > 1 && (
             <p className="text-[17px]">
-              I found <b>{plans.length} things</b> in that. Start with any one; the rest wait on the belt below.
+              I found <b>{plans.length} things</b> in that. We'll go through them one after another.
             </p>
           )}
           <div className={`grid gap-4 ${plans.length > 1 ? 'lg:grid-cols-2' : ''}`}>
@@ -216,26 +216,27 @@ export function VoiceTell() {
                   options={plan.options}
                   usualId={plan.usualId}
                   footer={
-                    <>
-                      <p className="text-[20px] leading-snug">
-                        ≈ <b>{gbp(monthlyCost(plan.options.find((o) => o.id === plan.usualId)!, plan))}</b>
-                        {isOneOff(plan) ? ' once' : ' a month'}
-                        {sw && (
-                          <>
-                            . {sw.option.name} would save about <b>{gbp(sw.monthlyGBP)}</b>.
-                          </>
-                        )}
-                      </p>
-                      <PixelButton data-fx="star" onClick={() => startCustom(plan)}>
-                        See the trade-offs
-                      </PixelButton>
-                    </>
+                    <p className="text-[20px] leading-snug">
+                      ≈ <b>{gbp(monthlyCost(plan.options.find((o) => o.id === plan.usualId)!, plan))}</b>
+                      {isOneOff(plan) ? ' once' : ' a month'}
+                      {sw && (
+                        <>
+                          . {sw.option.name} would save about <b>{gbp(sw.monthlyGBP)}</b>.
+                        </>
+                      )}
+                    </p>
                   }
                 />
               )
             })}
           </div>
-          <p className="text-[14px] text-ink/70">Estimates from Qwen. Real prices vary.</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <PixelButton data-fx="star" onClick={() => startQueue(plans)}>
+              {plans.length > 1 ? `Start with ${plans[0].title}` : 'See the trade-offs'}
+            </PixelButton>
+            {plans.length > 1 && <span className="text-[15px]">The others follow straight after.</span>}
+            <span className="text-[14px] text-ink/70">Estimates from Qwen. Real prices vary.</span>
+          </div>
         </div>
       )}
 

@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { PixelArt } from '../components/PixelArt'
 import { PixelBar, PixelButton, PixelCard, PixelIcon, Label, Title } from '../components/ui'
-import { APP_NAME, GOAL_PRESETS, TAGLINE } from '../data/copy'
+import { APP_NAME, TAGLINE } from '../data/copy'
 import {
   HEALTH_DUEL_POINTS,
   HEALTH_START,
@@ -14,14 +13,12 @@ import {
 } from '../lib/exchangeRates'
 import type { Bounds } from '../lib/exchangeRates'
 import { gbp } from '../lib/format'
-import { isoInDays } from '../lib/goal'
 import { useAppStore } from '../store/useAppStore'
 
 const TIME_ROUNDS = 3
 const HEALTH_ROUNDS = 2
 const DUELS = TIME_ROUNDS + HEALTH_ROUNDS
-const GOAL_STEP = DUELS + 1
-const MONEY_STEP = DUELS + 2
+const MONEY_STEP = DUELS + 1
 
 /** Replays yes/no answers into a narrowed range, so Back can simply drop an answer. */
 function replay(start: Bounds, answers: boolean[]): Bounds {
@@ -41,10 +38,9 @@ export function Onboarding() {
   const finish = useAppStore((s) => s.finishOnboarding)
   const loadDemo = useAppStore((s) => s.loadDemo)
 
-  // 0 welcome, 1..DUELS duels, GOAL_STEP goal, MONEY_STEP money
+  // 0 welcome, 1..DUELS duels, MONEY_STEP money left
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<boolean[]>([])
-  const [goalIdx, setGoalIdx] = useState(0)
   const [money, setMoney] = useState(25)
 
   const timeAnswers = answers.slice(0, TIME_ROUNDS)
@@ -56,7 +52,7 @@ export function Onboarding() {
 
   const goBack = () => {
     // going back to duel n forgets duel n's answer, so you can re-answer it
-    if (step <= GOAL_STEP) setAnswers((a) => a.slice(0, Math.max(0, step - 2)))
+    if (step <= MONEY_STEP) setAnswers((a) => a.slice(0, Math.max(0, step - 2)))
     setStep((s) => s - 1)
   }
 
@@ -127,49 +123,16 @@ export function Onboarding() {
     )
   }
 
-  if (step === GOAL_STEP) {
-    return (
-      <div className="space-y-6">
-        <BackButton onClick={goBack} label="Back to the last question" />
-        <PixelCard className="anim-pop">
-          <Label>What we learned</Label>
-          <p className="mt-2 text-[19px] leading-snug">
-            Your time is worth about <b className="num">{gbp(timeRate)}</b> an hour to you.
-          </p>
-          <p className="mt-2">
-            We'll use that to judge whether paying more to save time is good value. You can always overrule it.
-          </p>
-        </PixelCard>
-        <div>
-          <Title className="mb-3">Pick something to save for</Title>
-          <div className="grid gap-3" role="group" aria-label="Savings goal">
-            {GOAL_PRESETS.map((g, i) => (
-              <button
-                key={g.name}
-                type="button"
-                aria-pressed={goalIdx === i}
-                onClick={() => setGoalIdx(i)}
-                className="pbox pselect flex items-center justify-between p-3"
-              >
-                <span className="text-[19px]">
-                  <PixelArt name={g.icon} size={2} /> {g.name}
-                </span>
-                <span className="num text-[24px] font-semibold leading-none">{gbp(g.target)}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-        <PixelButton className="w-full" onClick={() => setStep(MONEY_STEP)}>
-          Next: money left
-        </PixelButton>
-      </div>
-    )
-  }
-
-  const goal = GOAL_PRESETS[goalIdx]
   return (
     <div className="space-y-6">
-      <BackButton onClick={goBack} label="Back to choosing a goal" />
+      <BackButton onClick={goBack} label="Back to the last question" />
+      <PixelCard className="anim-pop">
+        <Label>What we learned</Label>
+        <p className="mt-2 text-[19px] leading-snug">
+          Your time is worth about <b className="num">{gbp(timeRate)}</b> an hour to you.
+        </p>
+        <p className="mt-2">We'll use that to judge whether paying more to save time is good value. You can always overrule it.</p>
+      </PixelCard>
       <PixelCard>
         <Label>One last thing</Label>
         <p className="mt-2 text-[22px] leading-tight">About how much money have you got left this week?</p>
@@ -190,16 +153,9 @@ export function Onboarding() {
       </PixelCard>
       <PixelButton
         className="w-full"
-        onClick={() =>
-          finish({
-            timeRate,
-            healthRate,
-            moneyLeft: money,
-            goal: { name: goal.name, icon: goal.icon, target: goal.target, saved: 0, dueISO: isoInDays(goal.days) },
-          })
-        }
+        onClick={() => finish({ timeRate, healthRate, moneyLeft: money })}
       >
-        Start with {goal.name}
+        Let's go
       </PixelButton>
     </div>
   )

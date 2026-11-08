@@ -7,45 +7,51 @@ import { creditBasis, creditFor, isOneOff, perMonth, usesPerWeek } from './habit
 import { gbp, mins, timeSavedText } from './format'
 import { CHOOSABLE } from './pixelart'
 import { monthlyCost } from './guess'
-import { milestones, ago, paceInfo, personality, resolveHistory, totals, wrappedText } from './recap'
-import type { ChoiceRecord, Goal } from './types'
+import { ago, personality, resolveHistory, totals, wrappedText } from './recap'
+import type { ChoiceRecord } from './types'
 import { ICON_NAMES, PALETTE, artBox, dims, frameCount, framesOf, iconForText, naturalSize } from './pixelart'
 import { parseSpokenAmount } from './speech'
 import { suggestFor } from './suggest'
-import { VERTS, nearestPriority, pointToWeights, weightsToPoint } from './triangle'
-import { TRIP_SECONDS, TRIP_TICK_MS, maxMinutes, medals, minutesPerTick, heartChance, tripProgress } from './trip'
+import { contributions, nearestPriority, valuesToWeights, weightsToValues } from './mix'
+import { rank } from './scoring'
 
-describe('trade-off triangle', () => {
-  it('maps each corner to mostly that axis', () => {
-    expect(pointToWeights(VERTS.cost).cost).toBeGreaterThan(0.85)
-    expect(pointToWeights(VERTS.time).time).toBeGreaterThan(0.85)
-    expect(pointToWeights(VERTS.health).health).toBeGreaterThan(0.85)
+describe('priority mixer', () => {
+  const walkBus = DECISIONS.find((x) => x.id === 'commute')!.options
+
+  it('turns slider values into weights that sum to 1, with no priority ignored', () => {
+    const w = valuesToWeights({ cost: 10, time: 0, health: 0 })
+    expect(w.cost + w.time + w.health).toBeCloseTo(1, 6)
+    expect(w.cost).toBeGreaterThan(0.85)
+    expect(Math.min(w.time, w.health)).toBeGreaterThanOrEqual(0.05)
   })
-  it('weights always sum to 1 and never fall below the floor, even outside the triangle', () => {
-    for (const p of [{ x: -50, y: -50 }, { x: 400, y: 400 }, { x: 150, y: 150 }, { x: 0, y: 260 }]) {
-      const w = pointToWeights(p)
-      expect(w.cost + w.time + w.health).toBeCloseTo(1, 6)
-      expect(Math.min(w.cost, w.time, w.health)).toBeGreaterThanOrEqual(0.04)
-    }
+  it('all-zero sliders mean an even split, not a divide by zero', () => {
+    expect(valuesToWeights({ cost: 0, time: 0, health: 0 })).toEqual({ cost: 1 / 3, time: 1 / 3, health: 1 / 3 })
   })
-  it('round-trips a point inside the triangle exactly', () => {
-    const p = { x: 140, y: 150 }
-    const back = weightsToPoint(pointToWeights(p))
-    expect(back.x).toBeCloseTo(p.x, 6)
-    expect(back.y).toBeCloseTo(p.y, 6)
+  it('weights go back to sensible slider positions', () => {
+    expect(weightsToValues({ cost: 0.6, time: 0.3, health: 0.1 })).toEqual({ cost: 10, time: 5, health: 2 })
+    expect(weightsToValues({ cost: 1 / 3, time: 1 / 3, health: 1 / 3 })).toEqual({ cost: 10, time: 10, health: 10 })
   })
-  it('names the nearest priority, balanced in the middle', () => {
+  it('names the nearest priority, balanced when about even', () => {
     expect(nearestPriority({ cost: 1 / 3, time: 1 / 3, health: 1 / 3 })).toBe('balanced')
     expect(nearestPriority({ cost: 0.7, time: 0.15, health: 0.15 })).toBe('money')
     expect(nearestPriority({ cost: 0.15, time: 0.7, health: 0.15 })).toBe('time')
     expect(nearestPriority({ cost: 0.15, time: 0.15, health: 0.7 })).toBe('health')
   })
-  it('suggestFor uses dragged weights over the blend', () => {
+  it('leaderboard order matches the ranking and the parts add up to the fit', () => {
+    for (const w of [valuesToWeights({ cost: 10, time: 0, health: 0 }), valuesToWeights({ cost: 0, time: 10, health: 0 }), valuesToWeights({ cost: 0, time: 0, health: 10 })]) {
+      const board = contributions(walkBus, w)
+      expect(board.map((c) => c.option.id)).toEqual(rank(walkBus, w).ranked.map((r) => r.option.id))
+      for (const c of board) expect(c.parts.cost + c.parts.time + c.parts.health).toBeCloseTo(c.fit, 8)
+    }
+  })
+  it('money first puts the free walk on top, time first the quick taxi', () => {
+    expect(contributions(walkBus, valuesToWeights({ cost: 10, time: 0, health: 0 }))[0].option.id).toBe('walk')
+    expect(contributions(walkBus, valuesToWeights({ cost: 0, time: 10, health: 0 }))[0].option.id).toBe('uber')
+  })
+  it('suggestFor uses slider weights over the blend', () => {
     const d = DECISIONS.find((x) => x.id === 'commute')!
-    const money = suggestFor(d, 'time', [], 1, { cost: 0.9, time: 0.05, health: 0.05 }).suggested.id
-    const time = suggestFor(d, 'money', [], 1, { cost: 0.05, time: 0.9, health: 0.05 }).suggested.id
-    expect(money).toBe('walk')
-    expect(time).toBe('uber')
+    expect(suggestFor(d, 'time', [], 1, valuesToWeights({ cost: 10, time: 0, health: 0 })).suggested.id).toBe('walk')
+    expect(suggestFor(d, 'money', [], 1, valuesToWeights({ cost: 0, time: 10, health: 0 })).suggested.id).toBe('uber')
   })
 })
 
@@ -57,33 +63,6 @@ describe('spoken amounts', () => {
     ['three hundred and five', 305], ['zero', 0], ['hello there', null], ['', null],
   ]
   it.each(cases)('%s -> %s', (text, want) => expect(parseSpokenAmount(text)).toBe(want))
-})
-
-describe('trip race', () => {
-  const commute = DECISIONS.find((x) => x.id === 'commute')!.options
-  it('the slowest option takes the whole race and the quickest arrives first', () => {
-    expect(maxMinutes(commute)).toBe(40)
-    const half = 14 // minutes in
-    const [bus, uber, walk] = commute
-    expect(tripProgress(uber, half)).toBe(1)
-    expect(tripProgress(bus, half)).toBeCloseTo(0.5, 5)
-    expect(tripProgress(walk, half)).toBeCloseTo(0.35, 5)
-  })
-  it('clamps progress to 0..1', () => {
-    expect(tripProgress(commute[0], -5)).toBe(0)
-    expect(tripProgress(commute[0], 999)).toBe(1)
-  })
-  it('steps so the whole race lasts about TRIP_SECONDS', () => {
-    const ticks = maxMinutes(commute) / minutesPerTick(commute)
-    expect(ticks * TRIP_TICK_MS).toBeCloseTo(TRIP_SECONDS * 1000, 0)
-  })
-  it('hands out the three medals', () => {
-    expect(medals(commute)).toEqual({ fastest: 'uber', cheapest: 'walk', healthiest: 'walk' })
-  })
-  it('healthy ways give off more hearts than unhealthy ones', () => {
-    expect(heartChance(commute[2])).toBeGreaterThan(heartChance(commute[0]))
-    expect(heartChance(commute[0])).toBeGreaterThan(heartChance(commute[1]))
-  })
 })
 
 const goodRaw = {
@@ -237,12 +216,11 @@ describe('reading amounts aloud', () => {
   })
 })
 
-describe('recap and goal pace', () => {
+describe('recap', () => {
   const now = Date.UTC(2026, 10, 8)
   const rec = (over: Partial<ChoiceRecord> = {}): ChoiceRecord => ({
     decisionId: 'commute', optionId: 'walk', priority: 'money', guessErr: 0.1, savedGBP: 1.8, minutesSaved: -12, verdict: null, at: now - 2 * 86_400_000, ...over,
   })
-  const goal = (saved: number, due = 40): Goal => ({ name: 'Festival', icon: 'ticket', target: 120, saved, dueISO: new Date(now + due * 86_400_000).toISOString() })
 
   it('pairs records with options and works out health against the usual', () => {
     const e = resolveHistory([rec(), rec({ optionId: 'uber' }), rec({ decisionId: 'ghost' })])
@@ -265,21 +243,6 @@ describe('recap and goal pace', () => {
     expect(personality([rec(), rec(), rec({ priority: 'time' })])?.title).toBe('The Penny Pincher')
     expect(personality([rec({ priority: 'health' }), rec({ priority: 'health' })])?.title).toBe('The Health Kicker')
     expect(personality([rec({ priority: 'time' }), rec({ priority: 'money' })])?.title).toBe('The Balancer') // a tie
-  })
-  it('judges pace once there are two recent choices', () => {
-    expect(paceInfo(goal(10), [rec()], now).status).toBe('unknown')
-    const fast = paceInfo(goal(10), [rec({ savedGBP: 50, at: now - 6 * 86_400_000 }), rec({ savedGBP: 50 })], now)
-    expect(fast.status).toBe('ahead')
-    expect(fast.projectedISO).not.toBeNull()
-    const slow = paceInfo(goal(10), [rec({ savedGBP: 1 }), rec({ savedGBP: 1 })], now)
-    expect(slow.status).toBe('behind')
-    expect(paceInfo(goal(10), [rec({ savedGBP: -3 }), rec({ savedGBP: -3 })], now)).toMatchObject({ status: 'behind', projectedISO: null })
-    expect(paceInfo(goal(120), [], now).status).toBe('done')
-  })
-  it('marks the quarter-way stations you have reached', () => {
-    expect(milestones(goal(61)).map((m) => m.reached)).toEqual([true, true, false, false])
-    expect(milestones(goal(120)).every((m) => m.reached)).toBe(true)
-    expect(milestones(goal(0)).map((m) => m.gbp)).toEqual([30, 60, 90, 120])
   })
   it('says when something happened', () => {
     expect(ago(now, now)).toBe('today')
@@ -341,7 +304,7 @@ describe('time wording, days and one-off purchases', () => {
     expect(creditBasis(oneOff, 'Used console')).toBe('once')
     expect(creditBasis(habit, 'Walk')).toBe('over a week of Walk')
   })
-  it('a weekly credit makes the goal visibly move', () => {
+  it('a weekly credit is a visible amount of money', () => {
     // walk instead of Uber: £7.40 a use, about 4.6 uses a week
     expect(creditFor(habit, 7.4)).toBeGreaterThan(30)
   })

@@ -1,17 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { DECISIONS, getDecision } from '../data/decisions'
-import { evaluateBadges } from './badges'
 import { stepValue } from './countUp'
 import { HEALTH_START, TIME_START, midpoint, refine, timeDuelPrice } from './exchangeRates'
 import { recommendationSentence, timePurchase } from './explain'
 import { BAND_LABEL, band, closeness, guessError, monthlyCost, sliderMax, sliderStep } from './guess'
 import { EMPTY_GUT, addGuess, gutScore, gutShareText, nextStreak } from './gut'
 import { habitLine } from './hook'
-import { applySaving, daysLeft, goalEffect, isoInDays } from './goal'
-import { buildRace, pickRival, progressAt, raceSentence } from './race'
 import { PRIORITY_WEIGHTS, bestOn, blendWeights, normalise, podiumOrder, rank } from './scoring'
 import { suggestFor } from './suggest'
-import type { ChoiceRecord, Goal } from './types'
 
 const commute = getDecision('commute')
 
@@ -100,22 +96,6 @@ describe('recommendation sentence', () => {
   })
 })
 
-describe('goal', () => {
-  const now = Date.now()
-  const goal: Goal = { name: 'Festival', icon: 'ticket', target: 120, saved: 0, dueISO: isoInDays(60, now) }
-
-  it('turns pounds into days', () => {
-    expect(daysLeft(goal, now)).toBe(60)
-    expect(goalEffect(goal, 2, now).days).toBeCloseTo(1) // £2/day needed
-    expect(goalEffect(goal, -4, now).days).toBeCloseTo(-2)
-  })
-
-  it('clamps saved between 0 and target', () => {
-    expect(applySaving(goal, -50).saved).toBe(0)
-    expect(applySaving(goal, 500).saved).toBe(120)
-  })
-})
-
 describe('count up', () => {
   it('moves in discrete steps and lands exactly on the target', () => {
     expect(stepValue(0, 10, 0, 5)).toBe(0)
@@ -123,87 +103,6 @@ describe('count up', () => {
     expect(stepValue(0, 10, 3, 5)).toBe(6)
     expect(stepValue(0, 10, 5, 5)).toBe(10)
     expect(stepValue(0, 10, 9, 5)).toBe(10)
-  })
-})
-
-describe('badges', () => {
-  const rec = (over: Partial<ChoiceRecord>): ChoiceRecord => ({
-    decisionId: 'commute',
-    optionId: 'bus',
-    priority: 'money',
-    guessErr: 0.5,
-    savedGBP: 0,
-    minutesSaved: 0,
-    verdict: null,
-    at: 0,
-    ...over,
-  })
-
-  it('awards pattern badges, not spending badges', () => {
-    const ids = evaluateBadges([rec({}), rec({}), rec({ priority: 'time' }), rec({ priority: 'health' })])
-    expect(ids).toContain('penny')
-    expect(ids).toContain('balanced')
-    expect(ids).not.toContain('timesaver')
-  })
-
-  it('awards Sharp Eye and Worth It', () => {
-    const ids = evaluateBadges([rec({ guessErr: 0.05, verdict: 'good' })])
-    expect(ids).toEqual(expect.arrayContaining(['sharp', 'worth']))
-  })
-})
-
-describe('two yous race', () => {
-  const now = Date.UTC(2026, 0, 1)
-  const goal: Goal = { name: 'Festival', icon: 'ticket', target: 120, saved: 20, dueISO: new Date(now + 60 * 86_400_000).toISOString() }
-  const bus = commute.options.find((o) => o.id === 'bus')!
-  const uber = commute.options.find((o) => o.id === 'uber')!
-  const walk = commute.options.find((o) => o.id === 'walk')!
-
-  it('your usual lands exactly on the due date', () => {
-    const r = buildRace(goal, goal.saved, commute, bus, uber, bus, now)
-    expect(r.a.weeksToGoal! * 7).toBeCloseTo(60, 5)
-  })
-
-  it('a cheaper habit finishes earlier than a pricier one', () => {
-    const r = buildRace(goal, goal.saved, commute, walk, uber, bus, now)
-    // a daily Uber habit outspends the whole saving pace, so that lane never gets there
-    expect(r.b.weeksToGoal).toBeNull()
-    expect(r.gapDays).toBeNull()
-    const fin = buildRace(goal, goal.saved, commute, walk, bus, bus, now)
-    expect(fin.a.weeksToGoal!).toBeLessThan(fin.b.weeksToGoal!)
-    expect(fin.gapDays!).toBeGreaterThan(0)
-  })
-
-  it('a habit that stops saving never reaches the goal', () => {
-    const r = buildRace(goal, goal.saved, commute, bus, uber, walk, now)
-    expect(r.b.weeksToGoal === null || r.b.weeksToGoal > r.a.weeksToGoal!).toBe(true)
-  })
-
-  it('progress is clamped between 0 and 1', () => {
-    const r = buildRace(goal, goal.saved, commute, walk, uber, bus, now)
-    expect(progressAt(r.a, goal.saved, goal.target, 0)).toBeCloseTo(20 / 120)
-    expect(progressAt(r.a, goal.saved, goal.target, 999)).toBe(1)
-  })
-
-  it('races your usual when you chose something else, else the furthest option on cost', () => {
-    expect(pickRival(commute, 'uber', 'bus').id).toBe('bus')
-    expect(pickRival(commute, 'bus', 'bus').id).toBe('uber')
-  })
-})
-
-describe('race sentence', () => {
-  const now = Date.UTC(2026, 0, 1)
-  const goal: Goal = { name: 'Festival', icon: 'ticket', target: 120, saved: 20, dueISO: new Date(now + 60 * 86_400_000).toISOString() }
-  const o = (id: string) => commute.options.find((x) => x.id === id)!
-  it('names the earlier lane first and the gap in days', () => {
-    const r = buildRace(goal, goal.saved, commute, o('walk'), o('bus'), o('bus'), now)
-    const s = raceSentence('Festival', r)
-    expect(s.startsWith('With Walk')).toBe(true)
-    expect(s).toContain('days later')
-  })
-  it('says so plainly when a habit never gets there', () => {
-    const r = buildRace(goal, goal.saved, commute, o('bus'), o('uber'), o('bus'), now)
-    expect(raceSentence('Festival', r)).toContain('over two years')
   })
 })
 
@@ -232,7 +131,7 @@ describe('monthly-cost guess', () => {
   })
 })
 
-describe('gut score, streak, badges and habit line', () => {
+describe('gut score, streak and habit line', () => {
   it('is null before any guess and tiered after', () => {
     expect(gutScore(EMPTY_GUT).pct).toBeNull()
     let g = addGuess(EMPTY_GUT, 0.9, true)
@@ -246,25 +145,11 @@ describe('gut score, streak, badges and habit line', () => {
     expect(nextStreak(2, [true])).toBe(3)
     expect(nextStreak(4, [false])).toBe(0)
   })
-  it('badges for bullseyes and streaks', () => {
-    const rec = (o: Partial<ChoiceRecord>): ChoiceRecord => ({
-      decisionId: 'commute', optionId: 'bus', priority: 'money', guessErr: 0.5, savedGBP: 0, minutesSaved: 0, verdict: null, at: 0, ...o,
-    })
-    expect(evaluateBadges([rec({ guessErr: 0.08 })])).toContain('sharp')
-    expect(evaluateBadges([rec({ guessErr: 0.2 })])).not.toContain('sharp')
-    expect(evaluateBadges([rec({})], 5)).toContain('streak')
-    expect(evaluateBadges([rec({})], 4)).not.toContain('streak')
-  })
-  it('habit line states the monthly cost in goal days, or just money with no goal', () => {
-    const now = Date.UTC(2026, 0, 1)
-    const g: Goal = { name: 'Festival ticket', icon: 'ticket', target: 120, saved: 20, dueISO: new Date(now + 50 * 86_400_000).toISOString() }
+  it('habit line says the monthly cost and what it adds up to in a year', () => {
     const bus = commute.options.find((o) => o.id === 'bus')!
     const walk = commute.options.find((o) => o.id === 'walk')!
-    expect(habitLine(commute, bus, g, now)).toContain('days of saving for Festival ticket')
-    expect(habitLine(commute, bus, null, now)).not.toContain('days of')
-    expect(habitLine(commute, walk, g, now)).toContain('costs nothing')
-    const big = getDecision('foodshop')
-    expect(habitLine(big, big.options[0], g, now)).toContain('more than the')
+    expect(habitLine(commute, bus)).toBe('Your usual Bus costs £36 a month, about £432 a year.')
+    expect(habitLine(commute, walk)).toContain('costs nothing')
   })
 })
 
