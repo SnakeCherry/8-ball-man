@@ -1,5 +1,5 @@
 import { gbp, mins } from './format'
-import { formatSpan, lifeEach } from './life'
+import { LIFE_MIN_PER_POINT, formatSpan, lifeEach } from './life'
 import { isOneOff } from './habit'
 import { streamChat } from './llm'
 import { contributions, nearestPriority } from './mix'
@@ -104,7 +104,7 @@ export function validateAdvice(text: string, f: AdviceFacts): boolean {
 const AXIS_WORD: Record<Axis, (f: AdviceFacts, other: Option, gap: number) => string> = {
   cost: (_f, o, gap) => `${o.name} would be ${gbp(gap)} cheaper`,
   time: (f, o, gap) => `${o.name} would be ${mins(gap)} ${f.oneOff ? 'sooner' : 'quicker'}`,
-  health: (_f, o, gap) => `${o.name} would be ${Math.round(gap)} ${Math.round(gap) === 1 ? 'point' : 'points'} healthier`,
+  health: (_f, o, gap) => `${o.name} would add ${formatSpan(gap * LIFE_MIN_PER_POINT)} more to your life`,
 }
 
 /** Plain English from the facts alone, for when Qwen is down or says something that doesn't check out. */
@@ -118,7 +118,10 @@ export function plainAdvice(f: AdviceFacts): string {
     b.id === f.usual.id || Math.abs(m) < 1
       ? ''
       : ` and it ${m > 0 ? 'adds' : 'takes'} about ${formatSpan(m)} ${m > 0 ? 'to' : 'off'} your life${f.oneOff ? '' : ' each time'} compared with ${f.usual.name}`
-  const body = `${opener}: ${cost}, ${time}${life}.`
+  // a free "do without" option takes no time at all, so leave the time out rather than say "0 min"
+  // "No tripod" is not something to "go with": say it as it is, that doing without keeps the money
+  const skips = /^(no|skip|without|do without|don't)\b/i.test(b.name) && f.usual.costGBP > 0
+  const body = skips ? `Skipping it is your cheapest move: you'd keep the ${gbp(f.usual.costGBP)}.` : `${opener}: ${cost}${b.timeMin > 0 ? `, ${time}` : ''}${life}.`
 
   // the catch: the one thing another option does clearly better
   let catchLine = ''

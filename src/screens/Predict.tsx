@@ -5,6 +5,7 @@ import { VoiceGuess } from '../components/VoiceGuess'
 import { getDecision } from '../data/decisions'
 import { gbp } from '../lib/format'
 import { sliderMax, sliderStep } from '../lib/guess'
+import { timesAMonth } from '../lib/habit'
 import { play } from '../lib/sound'
 import { useAppStore } from '../store/useAppStore'
 
@@ -55,7 +56,7 @@ export function Predict() {
         <h2 id="guess-q" className="mt-3 text-[22px] leading-snug lg:text-[30px]">
           How much does your usual <b>{usualOpt.name}</b> cost you a month?
         </h2>
-        <p className="mt-1 text-[15px] text-muted">About {d.timesPerMonth} times a month. Drag the slider or say a number, then lock it in.</p>
+        <p className="mt-1 text-[15px] text-muted">About {timesAMonth(d)}. Drag the slider or say a number, then lock it in.</p>
       </div>
 
       </div>

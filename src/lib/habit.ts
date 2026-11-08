@@ -3,6 +3,9 @@ import type { Decision } from './types'
 /** A one-off purchase (a console, a laptop) has no "times a month": Qwen marks it with 0. */
 export const isOneOff = (d: Decision): boolean => d.timesPerMonth <= 0
 
+/** "1 time a month" or "20 times a month" (singular for one). */
+export const timesAMonth = (d: Decision): string => `${d.timesPerMonth} ${d.timesPerMonth === 1 ? 'time' : 'times'} a month`
+
 /** How many times a typical week you do this. A one-off counts once. */
 export const usesPerWeek = (d: Decision): number => (isOneOff(d) ? 1 : (d.timesPerMonth * 12) / 52)
 

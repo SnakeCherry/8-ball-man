@@ -51,6 +51,8 @@ export function PriorityMixer({
   const [easy, setEasy] = useState(true)
   const [order, setOrder] = useState<Axis[]>(() => (chosen ? [...AXES].sort((a, b) => weights[b] - weights[a]) : []))
   const live = valuesToWeights(mix)
+  // when every option has the same health (a tripod, say) there is nothing to say about it
+  const healthMatters = options.some((o) => o.health !== options[0].health)
   const board = contributions(options, weights)
   const bestFit = Math.max(board[0].fit, 0.0001)
   const rankOf = new Map(board.map((c, i) => [c.option.id, i]))
@@ -207,9 +209,11 @@ export function PriorityMixer({
                     <span className="num mt-1 flex items-center gap-3 text-[14px]">
                       <span>{gbp(o.costGBP)}</span>
                       <span>{mins(o.timeMin)}</span>
-                      <span className="flex items-center gap-1">
-                        <PixelArt name="heart" size={1} /> {lifeEachText(o, usual)}
-                      </span>
+                      {healthMatters && (
+                        <span className="flex items-center gap-1">
+                          <PixelArt name="heart" size={1} /> {lifeEachText(o, usual)}
+                        </span>
+                      )}
                     </span>
                   </span>
                 </button>

@@ -73,3 +73,14 @@ describe('switchLife', () => {
     expect(switchLife(oneOff)).toBeNull()
   })
 })
+
+describe('"1 time a month" is singular', () => {
+  it('says time, not times, for once a month', () => {
+    const d = structuredClone(DECISIONS.find((x) => x.id === 'commute')!)
+    d.timesPerMonth = 1
+    expect(savingExplain(d)).toContain('about 1 time a month')
+    expect(savingExplain(d)).not.toContain('1 times')
+    d.timesPerMonth = 4
+    expect(savingExplain(d)).toContain('about 4 times a month')
+  })
+})

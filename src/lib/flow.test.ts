@@ -224,3 +224,25 @@ describe('several habits from one sentence', () => {
     expect(useAppStore.getState().weights).toBeNull() // the run is over
   })
 })
+
+describe('advice for doing without', () => {
+  it('says skipping keeps the money instead of "go with No tripod"', () => {
+    const d = {
+      id: 't',
+      title: 'Tripod',
+      icon: 'bag',
+      blurb: '',
+      timesPerMonth: 0,
+      usualId: 'o1',
+      options: [
+        { id: 'o1', name: 'Tripod', icon: 'bag', costGBP: 40, timeMin: 1440, health: 5 },
+        { id: 'o2', name: 'Second-hand tripod', icon: 'bag', costGBP: 20, timeMin: 4320, health: 5 },
+        { id: 'o3', name: 'No tripod', icon: 'coin', costGBP: 0, timeMin: 0, health: 5 },
+      ],
+    } as unknown as Parameters<typeof buildFacts>[0]
+    const text = plainAdvice(buildFacts(d, valuesToWeights({ cost: 9, time: 1, health: 1 })))
+    expect(text).toContain('Skipping it')
+    expect(text).toContain('£40')
+    expect(text).not.toContain('Go with No tripod')
+  })
+})

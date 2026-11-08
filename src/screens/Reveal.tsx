@@ -14,7 +14,7 @@ import { gbp } from '../lib/format'
 import { reducedMotion } from '../lib/fx'
 import { BAND_LABEL, CLOSE, band, closeness, guessError, monthlyCost } from '../lib/guess'
 import { nextStreak } from '../lib/gut'
-import { isOneOff } from '../lib/habit'
+import { isOneOff, timesAMonth } from '../lib/habit'
 import { habitLine } from '../lib/hook'
 import { AXES } from '../lib/scoring'
 import { isMuted, play, setMuted } from '../lib/sound'
@@ -98,6 +98,8 @@ export function Reveal() {
   const b = band(err)
   const { suggested } = suggestWith(d, weights)
   const spoken = `We suggest ${suggested.name}. ${advice}`
+  // no podium for health when every option scores the same on it (a tripod, say)
+  const podiumAxes = AXES.filter((a) => a !== 'health' || d.options.some((o) => o.health !== d.options[0].health))
   const gap = skipped ? 0 : AXIS_GAP
   const base = skipped ? 0 : 0.2
   const streakNow = scored ? nextStreak(streakStart, [isClose]) : streakStart
@@ -168,7 +170,7 @@ export function Reveal() {
               <CountUp value={truth} format={gbp} delayMs={skipped ? 0 : 300} /> <span className="text-[20px] font-normal">{isOneOff(d) ? 'once' : 'a month'}</span>
             </p>
             <p className="text-[14px] text-muted">
-              {isOneOff(d) ? `${usualOpt.name}, a one-off` : `${usualOpt.name}, about ${d.timesPerMonth} times a month`}
+              {isOneOff(d) ? `${usualOpt.name}, a one-off` : `${usualOpt.name}, about ${timesAMonth(d)}`}
             </p>
             {scored && <p className="anim-pop text-[16px] leading-snug">{habitLine(d, usualOpt)}</p>}
           </PixelCard>
@@ -226,8 +228,8 @@ export function Reveal() {
           {compare ? 'Hide the comparison' : '4 · Compare every option'}
         </button>
         {compare && (
-          <div className="mt-6 grid gap-6 lg:grid-cols-3">
-            {AXES.map((axis, i) => (
+          <div className={`mt-6 grid gap-6 ${podiumAxes.length === 3 ? 'lg:grid-cols-3' : 'lg:grid-cols-2'}`}>
+            {podiumAxes.map((axis, i) => (
               <Podium key={axis} options={d.options} axis={axis} usual={usualOpt} delay={base + i * gap} oneOff={isOneOff(d)} />
             ))}
           </div>

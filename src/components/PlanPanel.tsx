@@ -27,6 +27,8 @@ export function PlanPanel({
   footer?: ReactNode
 }) {
   const usualOpt = options.find((o) => o.id === usualId) ?? options[0]
+  // when every option has the same health there is nothing to say about it
+  const healthMatters = options.some((o) => o.health !== options[0].health)
   return (
     <div className="space-y-3 border-4 border-ink bg-white p-3">
       <p className="flex items-center gap-2 text-[19px] leading-tight">
@@ -43,7 +45,13 @@ export function PlanPanel({
                 <PixelArt name={o.icon} size={2} /> {o.name}
               </p>
               <p className="num mt-1 text-[15px]">
-                {gbp(o.costGBP)} · {mins(o.timeMin)} · <PixelArt name="heart" size={1} /> {usual ? 'Your usual' : lifeEachText(o, usualOpt)}
+                {gbp(o.costGBP)} · {mins(o.timeMin)}
+                {healthMatters && (
+                  <>
+                    {' · '}
+                    <PixelArt name="heart" size={1} /> {usual ? 'Your usual' : lifeEachText(o, usualOpt)}
+                  </>
+                )}
               </p>
               {usual && <p className="mt-1 font-pixel text-[12px] uppercase">Your usual</p>}
             </div>

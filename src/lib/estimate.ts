@@ -46,6 +46,9 @@ const clamp = (n: unknown, lo: number, hi: number): number | null =>
   typeof n === 'number' && Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : null
 const text = (s: unknown, max: number): string | null => (typeof s === 'string' && s.trim() ? s.trim().slice(0, max) : null)
 
+/** One-off purchases that really do affect health, so their scores are kept as estimated. */
+const HEALTHY_BUY = /gym|fitness|bike|bicycle|cycl|trainers|running shoes|swim|yoga|sport|racket|membership|dentist|doctor|glasses|therapy|vitamin|supplement|mattress|chair|food|meal|groceries/i
+
 let seq = 0
 
 /** Build a safe Decision from whatever the model returned, or null if it is unusable. */
@@ -66,6 +69,9 @@ export function sanitiseDecision(raw: unknown, _said = ''): Decision | null {
     if (!name || cost === null || time === null || health === null) return null
     options.push({ id: `o${i + 1}`, name, icon: isIconName(x.icon) ? x.icon : iconForText(name), costGBP: round2(cost), timeMin: Math.round(time), health: Math.round(health) })
   }
+  // a one-off buy that has nothing to do with health (a tripod, a console) gets the same neutral score on every option,
+  // so the app never claims it adds or costs you hours of life
+  if (Math.round(times) === 0 && !HEALTHY_BUY.test(`${title} ${options.map((o) => o.name).join(' ')}`)) options.forEach((o) => (o.health = 5))
   const usual = typeof r.usualIndex === 'number' && r.usualIndex >= 0 && r.usualIndex < 3 ? Math.floor(r.usualIndex) : 0
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'habit'
   return {

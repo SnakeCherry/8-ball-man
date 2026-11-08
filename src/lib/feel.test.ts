@@ -396,3 +396,24 @@ describe('too big to assess', () => {
     expect(laptop[0].options.some((o) => o.costGBP > TOO_BIG_GBP)).toBe(false)
   })
 })
+
+describe('health on things that have nothing to do with health', () => {
+  const buy = (activity: string, names: [string, string, string]) =>
+    sanitiseDecision({
+      activity,
+      timesPerMonth: 0,
+      options: [
+        { name: names[0], icon: 'bag', costGBP: 60, timeMin: 1440, health: 3 },
+        { name: names[1], icon: 'bag', costGBP: 30, timeMin: 2880, health: 6 },
+        { name: names[2], icon: 'coin', costGBP: 0, timeMin: 0, health: 9 },
+      ],
+    })!
+  it('a tripod gets the same neutral health on every option', () => {
+    const d = buy('Buying a tripod', ['Tripod purchase', 'Second-hand tripod', 'No tripod'])
+    expect(d.options.map((o) => o.health)).toEqual([5, 5, 5])
+  })
+  it('a gym membership keeps its health scores', () => {
+    const d = buy('Gym membership', ['Gym membership', 'Park workouts', 'No gym'])
+    expect(d.options.map((o) => o.health)).toEqual([3, 6, 9])
+  })
+})

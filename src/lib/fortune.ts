@@ -1,6 +1,6 @@
 import { gbp } from './format'
 import { monthlyCost } from './guess'
-import { isOneOff } from './habit'
+import { isOneOff, timesAMonth } from './habit'
 import { bestSwitch } from './hook'
 import { formatSpan, lifeEach, projectLife } from './life'
 import type { Decision } from './types'
@@ -41,7 +41,7 @@ export function savingParts(d: Decision): { title: string; detail: string } | nu
   const usual = d.options.find((o) => o.id === d.usualId) ?? d.options[0]
   const each = (o: { costGBP: number }, per: boolean) => (o.costGBP === 0 ? 'free' : `${gbp(o.costGBP)}${per ? ' a go' : ''}`)
   if (isOneOff(d)) return { title: `${sw.option.name} instead of ${usual.name}`, detail: `${each(sw.option, false)} instead of ${each(usual, false)}` }
-  return { title: `${sw.option.name} instead of ${usual.name}`, detail: `${each(sw.option, true)} instead of ${each(usual, true)}, about ${d.timesPerMonth} times a month` }
+  return { title: `${sw.option.name} instead of ${usual.name}`, detail: `${each(sw.option, true)} instead of ${each(usual, true)}, about ${timesAMonth(d)}` }
 }
 
 /** One plain sentence on HOW the saving happens. */
