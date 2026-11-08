@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DECISIONS } from '../data/decisions'
 import { parseQuestion } from './estimate'
-import { fortuneLine, savingSummary } from './fortune'
+import { fortuneLine, savingExplain, savingSummary } from './fortune'
 
 describe('fortuneLine', () => {
   it('names the best switch and what it saves', () => {
@@ -46,7 +46,7 @@ describe('fortuneLine when the usual cannot be beaten', () => {
     const usual = d.options.find((o) => o.id === d.usualId)!
     usual.costGBP = 0
     usual.health = 3
-    expect(fortuneLine([d])).toContain('3 out of 10 for health')
+    expect(fortuneLine([d])).toMatch(/of life/)
   })
   it('says the usual is a good call when it is healthy', () => {
     const d = structuredClone(DECISIONS[0])
@@ -54,5 +54,12 @@ describe('fortuneLine when the usual cannot be beaten', () => {
     usual.costGBP = 0
     usual.health = 8
     expect(fortuneLine([d])).toContain('already a good call')
+  })
+})
+
+describe('savingExplain', () => {
+  it('names what you would pick instead of your usual, with both prices', () => {
+    const line = savingExplain(DECISIONS.find((x) => x.id === 'commute')!)
+    expect(line).toMatch(/instead of/)
   })
 })

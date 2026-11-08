@@ -57,11 +57,14 @@ export function Home() {
             </span>
           </li>
           <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(totalsNow.minutes)}`}>
-            <span className="block text-[14px] text-muted">Time {totalsNow.minutes >= 0 ? 'saved' : 'extra'}</span>
-            <span className="block text-[22px] font-semibold">{mins(totalsNow.minutes)}</span>
+            <span className="block text-[14px] text-muted">Free time</span>
+            <span className="block text-[22px] font-semibold">
+              {totalsNow.minutes >= 0 ? '+' : '−'}
+              {mins(totalsNow.minutes)}
+            </span>
           </li>
           <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(lifeYear)}`} title="A rough, illustrative estimate if you keep your choices up for a year. Not medical advice.">
-            <span className="block text-[14px] text-muted">Life {lifeYear >= 0 ? 'added' : 'lost'} a year</span>
+            <span className="block text-[14px] text-muted">Life {lifeYear >= 0 ? 'added' : 'lost'}</span>
             <span className="block text-[22px] font-semibold">{signedSpan(lifeYear)}</span>
           </li>
         </ul>

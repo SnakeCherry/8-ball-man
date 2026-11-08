@@ -108,7 +108,7 @@ describe('advice in plain English', () => {
     const text = plainAdvice(facts)
     expect(text).toContain('Walk fits best because you put money first')
     expect(text).toContain('free')
-    expect(text).toContain('9 out of 10')
+    expect(text).toMatch(/of life each time compared with/)
     expect(text).toContain('The catch:')
     expect(validateAdvice(text, facts)).toBe(true) // the fallback always passes its own check
   })

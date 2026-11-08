@@ -1,6 +1,7 @@
 import { CountUp } from './CountUp'
 import { PixelArt } from './PixelArt'
 import { axisFormat } from './parts'
+import { lifeEach, signedSpan } from '../lib/life'
 import { PixelIcon } from './ui'
 import { AXIS_ICON } from './parts'
 import { PODIUM_TITLE } from '../data/copy'
@@ -19,7 +20,7 @@ const MEDAL = {
 const SHADE = 'inset 0 6px 0 rgba(255,255,255,0.38), inset 0 -8px 0 rgba(0,0,0,0.16)'
 
 /** A three-step podium for one axis: 2nd on the left, 1st in the middle, 3rd on the right. */
-export function Podium({ options, axis, delay = 0, oneOff = false }: { options: Option[]; axis: Axis; delay?: number; oneOff?: boolean }) {
+export function Podium({ options, axis, usual, delay = 0, oneOff = false }: { options: Option[]; axis: Axis; usual: Option; delay?: number; oneOff?: boolean }) {
   // for a one-off buy the time axis is how long until you have it
   const title = oneOff && axis === 'time' ? { title: 'Soonest', sub: 'how soon' } : PODIUM_TITLE[axis]
   const [first, second, third] = podiumOrder(options, axis)
@@ -47,7 +48,11 @@ export function Podium({ options, axis, delay = 0, oneOff = false }: { options: 
               <span className="sr-only">{MEDAL[rank].name}</span>
               <span className="font-pixel text-[12px]">{rank}</span>
               <span className="num text-[20px] font-semibold leading-none">
-                <CountUp value={axisShown(o, axis)} format={axisFormat[axis]} delayMs={(delay + at) * 1000 + 250} />
+                {axis === 'health' ? (
+                  <span>{o.id === usual.id ? 'Usual' : <CountUp value={lifeEach(o, usual)} format={signedSpan} delayMs={(delay + at) * 1000 + 250} />}</span>
+                ) : (
+                  <CountUp value={axisShown(o, axis)} format={axisFormat[axis]} delayMs={(delay + at) * 1000 + 250} />
+                )}
               </span>
             </div>
             <span className="mt-1 text-[14px] leading-tight">{o.name}</span>

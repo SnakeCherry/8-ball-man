@@ -1,4 +1,5 @@
 import { pulseLevel, trackPlaybackLevel } from './level'
+import { musicHold } from './music'
 import { isMuted } from './sound'
 
 const UNITS: Record<string, number> = {
@@ -154,8 +155,10 @@ function speakInBrowser(text: string): Promise<void> {
       const voice = speechSynthesis.getVoices().find((v) => v.lang === 'en-GB')
       if (voice) u.voice = voice
       const stopPulse = pulseLevel()
+      musicHold('voice', true)
       const done = () => {
         stopPulse()
+        musicHold('voice', false)
         resolve()
       }
       u.onend = done
@@ -196,6 +199,8 @@ export async function speak(text: string, untilDone = false): Promise<void> {
     playing = audio
     await audio.play()
     trackPlaybackLevel(audio)
+    musicHold('voice', true)
+    ;['ended', 'pause', 'error'].forEach((ev) => audio.addEventListener(ev, () => musicHold('voice', false), { once: true }))
     if (untilDone) await new Promise<void>((done) => ['ended', 'pause', 'error'].forEach((ev) => audio.addEventListener(ev, () => done(), { once: true })))
   } catch {
     remoteDownUntil = Date.now() + 20_000

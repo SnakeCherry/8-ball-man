@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { PixelArt } from './PixelArt'
 import { PixelIcon } from './ui'
 import type { SpriteName } from './ui'
-import { gbp, mins, score } from '../lib/format'
+import { gbp, mins } from '../lib/format'
+import { lifeEachText } from '../lib/life'
 import { EVEN_MIX, MIX_MAX, contributions, rankToMix, valuesToWeights, weightsText } from '../lib/mix'
 import type { Mix } from '../lib/mix'
 import type { Axis, Option, Weights } from '../lib/types'
@@ -27,12 +28,15 @@ const word = (v: number): string => (v === 0 ? 'Not at all' : v <= 3 ? 'A little
  */
 export function PriorityMixer({
   options,
+  usual,
   weights,
   onChange,
   selectedId,
   onSelect,
 }: {
   options: Option[]
+  /** your usual option: health is shown as life gained or lost compared with it */
+  usual: Option
   weights: Weights
   onChange: (w: Weights) => void
   selectedId: string
@@ -41,7 +45,7 @@ export function PriorityMixer({
   // every slider starts in the middle, then belongs to the student
   const [mix, setMix] = useState<Mix>(EVEN_MIX)
   // easy rank: tap Money, Time and Health from most to least important instead of sliding
-  const [easy, setEasy] = useState(false)
+  const [easy, setEasy] = useState(true)
   const [order, setOrder] = useState<Axis[]>([])
   const live = valuesToWeights(mix)
   const board = contributions(options, weights)
@@ -92,7 +96,7 @@ export function PriorityMixer({
                     aria-pressed={at >= 0}
                     onClick={() => tapRank(a)}
                     className="pbox pselect relative flex min-h-[110px] flex-col items-center justify-center gap-2 px-1 py-3 text-[18px]"
-                    style={{ background: at >= 0 ? AXIS_COLOR[a] : '#fff' }}
+                    style={{ background: at >= 0 ? MEDAL[at] : '#fff' }}
                   >
                     <span className="grid h-[40px] w-[40px] place-items-center border-4 border-ink bg-white" aria-hidden="true">
                       <PixelIcon name={AXIS_ICON[a]} size={2} color="#0a0a0a" />
@@ -143,7 +147,7 @@ export function PriorityMixer({
                 setOrder([])
               }}
             >
-              {easy ? 'Sliders' : 'Easy rank'}
+              {easy ? 'Use sliders' : 'Easy rank'}
             </button>
             <button
               type="button"
@@ -212,7 +216,7 @@ export function PriorityMixer({
                       <span>{gbp(o.costGBP)}</span>
                       <span>{mins(o.timeMin)}</span>
                       <span className="flex items-center gap-1">
-                        <PixelArt name="heart" size={1} /> {score(o.health)}
+                        <PixelArt name="heart" size={1} /> {lifeEachText(o, usual)}
                       </span>
                     </span>
                   </span>

@@ -28,7 +28,7 @@ export function Choose() {
   // the plain-English line is instant and always right; Qwen's wording replaces it a moment after you stop sliding
   useEffect(() => {
     if (!d || !effective) return
-    const facts = buildFacts(d, effective)
+    const facts = buildFacts(d, effective, usual[d.id] ?? d.usualId)
     setAdvice(plainAdvice(facts))
     let live = true
     const t = window.setTimeout(() => void adviceFor(facts).then((text) => live && setAdvice(text)), 650)
@@ -53,10 +53,11 @@ export function Choose() {
         <Title className="mb-1">
           <span id="step-priority">What matters most to you this week?</span>
         </Title>
-        <p className="mb-4 text-[15px] text-muted">Everything starts in the middle. Slide what matters more or less to you and the options re-rank.</p>
+        <p className="mb-4 text-[15px] text-muted">Tap money, time and health from most to least important and the options re-rank. Prefer sliders? Switch below.</p>
         <PriorityMixer
           key={d.id}
           options={d.options}
+          usual={usualOpt}
           weights={effective}
           selectedId={selected.id}
           onSelect={setManual}

@@ -3,6 +3,7 @@ import { BARS } from '../components/VoiceBits'
 import { startRecording } from './recorder'
 import type { Recording } from './recorder'
 import { setLevel } from './level'
+import { musicHold } from './music'
 import { play } from './sound'
 import { createSilenceTracker } from './vad'
 import { listen, supportsListening, transcribe, whisperAvailable } from './speech'
@@ -26,6 +27,12 @@ export function useSpeechInput(onText: (text: string) => void) {
   const finishRef = useRef<() => void>(() => undefined)
   const onTextRef = useRef(onText)
   onTextRef.current = onText
+
+  // the music stops while the mic is open, so it never ends up in what you said
+  useEffect(() => {
+    musicHold('mic', phase === 'recording' || phase === 'listening')
+    return () => musicHold('mic', false)
+  }, [phase])
 
   useEffect(() => {
     alive.current = true

@@ -83,7 +83,7 @@ describe('estimate from speech', () => {
     expect(d.options).toHaveLength(3)
     expect(d.usualId).toBe('o1')
     expect(d.timesPerMonth).toBe(20)
-    expect(d.blurb).toContain('Uber to uni')
+    expect(d.blurb).toBe('Priced from what you said.')
     expect(d.id.startsWith('custom-commute-to-uni')).toBe(true)
   })
   it('clamps silly numbers instead of trusting them', () => {
@@ -254,17 +254,17 @@ describe('recap', () => {
     const text = wrappedText('Trade-Off Check', personality([rec()]), { savedGBP: 12.5, minutes: -30, health: 6, choices: 3 })
     expect(text).toContain('The Penny Pincher')
     expect(text).toContain('saved £12.50')
-    expect(text).toContain('30 min extra')
+    expect(text).toContain('30 min longer')
     expect(text).toContain('+6 health points')
   })
 })
 
 describe('time wording, days and one-off purchases', () => {
-  it('says saved or extra, never a minus', () => {
+  it('says saved or longer, never a minus', () => {
     expect(timeSavedText(12)).toBe('12 min saved')
-    expect(timeSavedText(-12)).toBe('12 min extra')
+    expect(timeSavedText(-12)).toBe('12 min longer')
     expect(timeSavedText(0)).toBe('0 min saved')
-    expect(timeSavedText(-95)).toBe('1 h 35 min extra')
+    expect(timeSavedText(-95)).toBe('1 h 35 min longer')
     expect(timeSavedText(-95)).not.toContain('-')
   })
   it('shows long waits in days', () => {
@@ -384,5 +384,15 @@ describe('sound', () => {
     // no AudioContext in node: it must simply do nothing, never throw
     expect(() => play('sparkle')).not.toThrow()
     expect(() => play('magic')).not.toThrow()
+  })
+})
+
+describe('too big to assess', () => {
+  it('reads a house-sized price as over the limit, a laptop as fine', async () => {
+    const { TOO_BIG_GBP } = await import('./estimate')
+    const house = parseGroups('0|Buying a house\nBuy a flat|home|250000|43200|5\nRent|home|9000|0|5\nSave up|coin|1000|0|5')
+    expect(house[0].options.some((o) => o.costGBP > TOO_BIG_GBP)).toBe(true)
+    const laptop = parseGroups('0|A laptop\nMacBook|laptop|1299|1440|5\nRefurbished|laptop|600|2880|5\nUsed|laptop|350|2880|5')
+    expect(laptop[0].options.some((o) => o.costGBP > TOO_BIG_GBP)).toBe(false)
   })
 })

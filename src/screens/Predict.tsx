@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { PixelArt } from '../components/PixelArt'
 import { PixelButton, Label } from '../components/ui'
 import { VoiceGuess } from '../components/VoiceGuess'
 import { getDecision } from '../data/decisions'
 import { gbp } from '../lib/format'
-import { COUNTDOWN_S, sliderMax, sliderStep } from '../lib/guess'
+import { sliderMax, sliderStep } from '../lib/guess'
 import { play } from '../lib/sound'
 import { useAppStore } from '../store/useAppStore'
 
-const URGENT_S = 3 // last seconds turn red and blink
-
-/** Beat the clock: guess your usual habit's monthly cost before the countdown hits zero. */
+/** Guess your usual habit's monthly cost: drag or say a number, then lock it in. No clock. */
 export function Predict() {
   const decisionId = useAppStore((s) => s.decisionId)
   const usual = useAppStore((s) => s.usual)
@@ -21,12 +19,11 @@ export function Predict() {
   const max = d ? sliderMax(d) : 100
   const step = sliderStep(max)
   const [value, setValue] = useState(() => Math.round(max / 2 / step) * step)
-  const [left, setLeft] = useState(COUNTDOWN_S)
   const valueRef = useRef(value)
   const lockedRef = useRef(false)
   valueRef.current = value
 
-  // locks whatever the slider shows, once, whether the clock ran out or the student tapped
+  // locks whatever the slider shows, once
   const lock = useCallback(() => {
     if (lockedRef.current) return
     lockedRef.current = true
@@ -34,17 +31,6 @@ export function Predict() {
     setGuess(valueRef.current)
     go('reveal')
   }, [setGuess, go])
-
-  useEffect(() => {
-    const id = window.setInterval(() => setLeft((n) => n - 1), 1000)
-    return () => {
-      window.clearInterval(id) // leaving the screen cancels the round
-    }
-  }, [])
-  useEffect(() => {
-    if (left <= 0) lock()
-    else if (left < COUNTDOWN_S) play(left <= URGENT_S ? 'urgent' : 'tick')
-  }, [left, lock])
 
   // a spoken number moves the slider and gives the big £ a pop
   const [pop, setPop] = useState(0)
@@ -58,7 +44,6 @@ export function Predict() {
 
   if (!d) return null
   const usualOpt = d.options.find((o) => o.id === (usual[d.id] ?? d.usualId))!
-  const urgent = left <= URGENT_S
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 lg:grid lg:min-h-[calc(100dvh-var(--chrome))] lg:grid-cols-2 lg:items-center lg:gap-16 lg:space-y-0">
@@ -70,28 +55,7 @@ export function Predict() {
         <h2 id="guess-q" className="mt-3 text-[22px] leading-snug lg:text-[30px]">
           How much does your usual <b>{usualOpt.name}</b> cost you a month?
         </h2>
-        <p className="mt-1 text-[15px] text-muted">About {d.timesPerMonth} times a month. Drag, then lock in before time runs out.</p>
-      </div>
-
-      <div className="space-y-3" role="timer" aria-label={`${Math.max(0, left)} seconds left`}>
-        <div className="pcard mx-auto flex h-28 w-28 items-center justify-center bg-white">
-          <span
-            key={left}
-            className={`num font-pixel text-[48px] leading-none ${urgent ? 'anim-blink' : 'anim-pop'}`}
-            style={{ color: urgent ? '#b42318' : undefined }}
-          >
-            {Math.max(0, left)}
-          </span>
-        </div>
-        <div className="flex h-5 border-4 border-ink bg-white" aria-hidden="true">
-          {Array.from({ length: COUNTDOWN_S }, (_, i) => (
-            <i
-              key={i}
-              className="h-full flex-1 border-r-2 border-ink/20"
-              style={{ background: i < left ? (urgent ? '#ff6b6b' : '#16b77d') : undefined }}
-            />
-          ))}
-        </div>
+        <p className="mt-1 text-[15px] text-muted">About {d.timesPerMonth} times a month. Drag the slider or say a number, then lock it in.</p>
       </div>
 
       </div>

@@ -92,7 +92,7 @@ export function EightBall({ mood, children }: { mood: BallMood; children?: React
           ))}
       </svg>
       {mood !== 'idle' && (
-        <div className="pointer-events-none absolute overflow-hidden" style={{ ...box, clipPath: 'circle(50%)', opacity: mood === 'text' ? 0.6 : 1 }}>
+        <div className="pointer-events-none absolute overflow-hidden" style={{ ...box, opacity: mood === 'text' ? 0.6 : 1 }}>
           <Orb mood={mood} />
         </div>
       )}

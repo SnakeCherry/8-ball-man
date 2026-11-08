@@ -5,6 +5,7 @@ import { Logo } from './components/Logo'
 import { PixelIcon } from './components/ui'
 import type { SpriteName } from './components/ui'
 import { installFx } from './lib/fx'
+import { installMusic } from './lib/music'
 import { isMuted, setMuted, subscribeMuted } from './lib/sound'
 import { Oracle } from './screens/Oracle'
 import { Result } from './screens/Result'
@@ -38,6 +39,7 @@ export default function App() {
   const go = useAppStore((s) => s.go)
 
   useEffect(() => installFx(), [])
+  useEffect(() => installMusic(), [])
   const muted = useSyncExternalStore(subscribeMuted, isMuted)
 
   if (screen === 'ball') return <Oracle />

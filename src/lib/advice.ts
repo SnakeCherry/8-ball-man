@@ -1,4 +1,5 @@
 import { gbp, mins } from './format'
+import { formatSpan, lifeEach } from './life'
 import { isOneOff } from './habit'
 import { streamChat } from './llm'
 import { contributions, nearestPriority } from './mix'
@@ -15,18 +16,28 @@ export interface AdviceFacts {
   oneOff: boolean
   priority: Priority
   best: Option
+  /** the option they usually pick: health is judged as life gained or lost against it */
+  usual: Option
   options: Option[]
 }
 
-export function buildFacts(d: Decision, weights: Weights): AdviceFacts {
+export function buildFacts(d: Decision, weights: Weights, usualId: string = d.usualId): AdviceFacts {
   const best = contributions(d.options, weights)[0].option
-  return { title: d.title, oneOff: isOneOff(d), priority: nearestPriority(weights), best, options: d.options }
+  const usual = d.options.find((o) => o.id === usualId) ?? d.options[0]
+  return { title: d.title, oneOff: isOneOff(d), priority: nearestPriority(weights), best, usual, options: d.options }
 }
 
 const PRIORITY_WORDS: Record<Priority, string> = { money: 'money', time: 'time', health: 'health', balanced: 'a bit of everything' }
 
+/** Health as life against the usual option, in words ("3 hours more life each time than Uber"). */
+const lifeLine = (f: AdviceFacts, o: Option): string => {
+  const m = lifeEach(o, f.usual)
+  if (o.id === f.usual.id || Math.abs(m) < 1) return 'the same health as their usual'
+  return `${formatSpan(m)} ${m > 0 ? 'more' : 'less'} life${f.oneOff ? '' : ' each time'} than ${f.usual.name}`
+}
+
 const ago = (f: AdviceFacts, o: Option): string =>
-  `${o.name}: ${o.costGBP === 0 ? 'free' : gbp(o.costGBP)}${f.oneOff ? '' : ' a time'}, ${f.oneOff ? 'ready in ' : ''}${mins(o.timeMin)}, health ${o.health} out of 10`
+  `${o.name}: ${o.costGBP === 0 ? 'free' : gbp(o.costGBP)}${f.oneOff ? '' : ' a time'}, ${f.oneOff ? 'ready in ' : ''}${mins(o.timeMin)}, ${lifeLine(f, o)}`
 
 /** The facts as the lines Qwen is given. */
 export function factsText(f: AdviceFacts): string {
@@ -54,6 +65,7 @@ export function allowedNumbers(f: AdviceFacts): { gbp: number[]; minutes: number
       g.add(Math.abs(a.costGBP - b.costGBP))
       m.add(Math.abs(a.timeMin - b.timeMin))
       hg.add(Math.abs(a.health - b.health))
+      m.add(Math.abs(lifeEach(a, b))) // life minutes between two options
     })
   })
   // "1 h 35 min" or "3 days" are the same minutes said another way
@@ -101,7 +113,12 @@ export function plainAdvice(f: AdviceFacts): string {
   const opener = f.priority === 'balanced' ? `${b.name} is the best all-round choice` : `${b.name} fits best because you put ${PRIORITY_WORDS[f.priority]} first`
   const cost = b.costGBP === 0 ? 'is free' : `costs ${gbp(b.costGBP)}${f.oneOff ? '' : ' a time'}`
   const time = f.oneOff ? `arrives in ${mins(b.timeMin)}` : `takes ${mins(b.timeMin)}`
-  const body = `${opener}: it ${cost}, ${time} and scores ${b.health} out of 10 for health.`
+  const m = lifeEach(b, f.usual)
+  const life =
+    b.id === f.usual.id || Math.abs(m) < 1
+      ? ''
+      : ` and ${m > 0 ? 'could add' : 'could cost'} about ${formatSpan(m)} of life${f.oneOff ? '' : ' each time'} compared with ${f.usual.name}`
+  const body = `${opener}: it ${cost}, ${time}${life}.`
 
   // the catch: the one thing another option does clearly better
   let catchLine = ''
@@ -120,7 +137,7 @@ export function plainAdvice(f: AdviceFacts): string {
   return catchLine ? `${body} ${catchLine}` : body
 }
 
-const SYSTEM = `You write a short, friendly recommendation for a UK student (at most 45 words, plain English, no lists, no emoji). Say which option fits best and why, using what the person says matters most, and mention one honest downside. Use ONLY the numbers given, written like £7.50, 12 minutes or 8 out of 10. Do not invent any other number. Do not call the person "the person".`
+const SYSTEM = `You write a short, friendly recommendation for a UK student (at most 45 words, plain English, no lists, no emoji). Say which option fits best and why, using what the person says matters most, and mention one honest downside. Use ONLY the numbers given, written like £7.50, 12 minutes or 3 hours of life. Health is given as life gained or lost against their usual option. Do not invent any other number. Do not call the person "the person".`
 
 const cache = new Map<string, string>()
 const keyOf = (f: AdviceFacts): string => JSON.stringify([f.title, f.priority, f.best.id, f.options.map((o) => [o.name, o.costGBP, o.timeMin, o.health])])

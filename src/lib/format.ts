@@ -20,9 +20,9 @@ export function mins(n: number): string {
   return `${m} min`
 }
 
-/** "12 min saved" when it is faster than your usual, "12 min extra" when it is slower. Never a minus sign. */
+/** "12 min saved" when it is faster than your usual, "12 min longer" when it is slower. Never a minus sign. */
 export function timeSavedText(minutes: number): string {
-  return `${mins(minutes)} ${minutes >= 0 ? 'saved' : 'extra'}`
+  return `${mins(minutes)} ${minutes >= 0 ? 'saved' : 'longer'}`
 }
 
 /** A health score out of 10. */

@@ -8,12 +8,13 @@ import { VERDICT_LINE } from '../data/copy'
 import { getDecision } from '../data/decisions'
 import { burstAtElement } from '../lib/fx'
 import { gbp, timeSavedText } from '../lib/format'
+import { lifeFromPoints, signedSpan } from '../lib/life'
 import { play } from '../lib/sound'
 import { useAppStore } from '../store/useAppStore'
 import type { LastResult } from '../store/useAppStore'
 
 const money = (n: number): string => (Math.abs(n) < 0.005 ? 'Same as your usual' : n > 0 ? `${gbp(n)} saved` : `${gbp(n)} extra`)
-const health = (n: number): string => (n === 0 ? 'Same health' : `${n > 0 ? '+' : '−'}${Math.abs(n)} health`)
+const health = (n: number): string => (n === 0 ? 'Same health' : `${signedSpan(lifeFromPoints(n))} of life`)
 
 /** What you picked and what it is worth: one card per habit from this run, plus the total when there were several. */
 export function Result() {
@@ -22,6 +23,7 @@ export function Result() {
   const timeRate = useAppStore((s) => s.timeRate)
   const usual = useAppStore((s) => s.usual)
   const go = useAppStore((s) => s.go)
+  const openMedals = useAppStore((s) => s.openMedals)
   const ref = useRef<HTMLDivElement>(null)
 
   const results: LastResult[] = session.length ? session : lastResult ? [lastResult] : []
@@ -58,7 +60,7 @@ export function Result() {
           <p className="num text-[44px] font-semibold leading-none">
             {total >= 0 ? '+' : '−'}
             <CountUp value={Math.abs(total)} format={gbp} delayMs={250} />
-            <span className="ml-2 text-[20px] font-normal">{total >= 0 ? 'saved' : 'extra'} against your usual</span>
+            <span className="ml-2 text-[20px] font-normal">{total >= 0 ? 'saved against your usual' : 'more than your usual'}</span>
           </p>
           <p className="num text-[18px]">
             {timeSavedText(minutes)} · {health(healthTotal)}
@@ -99,11 +101,18 @@ export function Result() {
         <BadgeCard key={id} id={id} tier={tier} />
       ))}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <PixelButton onClick={() => go('home')}>Pick another decision</PixelButton>
-        <PixelButton variant="white" onClick={() => go('recap')}>
+      <div className="space-y-3">
+        <PixelButton className="w-full" data-fx="star" onClick={() => go('recap')}>
           See my recap
         </PixelButton>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <PixelButton variant="white" onClick={openMedals}>
+            See all my medals
+          </PixelButton>
+          <PixelButton variant="white" onClick={() => go('home')}>
+            Ask 8-Ball Man again
+          </PixelButton>
+        </div>
       </div>
     </div>
   )

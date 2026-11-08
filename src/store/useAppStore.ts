@@ -72,12 +72,16 @@ interface Flow {
   session: LastResult[]
   /** what to price as soon as the ball page opens (from an example chip), or null to start listening */
   ballSeed: string | null
+  /** Recap should open with the medals showing (set by the "See all my medals" buttons) */
+  showMedals: boolean
 }
 
 interface Actions {
   go: (screen: Screen) => void
   /** open the 8-ball page, optionally with something to price straight away */
   askBall: (seed?: string) => void
+  /** go to the Recap with the medals open */
+  openMedals: () => void
   startDecision: (id: string) => void
   /** begin from a decision made from speech: no guess round, straight to the results */
   startCustom: (d: Decision) => void
@@ -124,6 +128,7 @@ const freshFlow = (screen: Screen): Flow => ({
   queue: [],
   session: [],
   ballSeed: null,
+  showMedals: false,
 })
 
 const levelsFor = (history: ChoiceRecord[], usual: Record<string, string>, chains: number): BadgeLevel[] =>
@@ -200,6 +205,8 @@ export const useAppStore = create<AppState>()(
       ...freshFlow('onboarding'),
 
       go: (screen) => set({ screen }),
+
+      openMedals: () => set({ screen: 'recap', showMedals: true }),
 
       askBall: (seed) => set({ screen: 'ball', ballSeed: seed ?? null }),
 

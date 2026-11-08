@@ -8,22 +8,20 @@ import { SavingBig } from '../components/SavingBig'
 import { PixelArt } from '../components/PixelArt'
 import { PixelButton, PixelIcon } from '../components/ui'
 import { Typed } from '../components/VoiceBits'
-import { estimateDecisions, matchPreset } from '../lib/estimate'
+import { TOO_BIG_GBP, estimateDecisions, matchPreset } from '../lib/estimate'
 import type { ParsedEstimate } from '../lib/estimate'
-import { fortuneLine, savingSummary } from '../lib/fortune'
-import { gbp } from '../lib/format'
-import { monthlyCost } from '../lib/guess'
-import { isOneOff } from '../lib/habit'
-import { bestSwitch } from '../lib/hook'
+import { fortuneLine, savingExplain, savingSummary } from '../lib/fortune'
 import { isMuted, play, setMuted, subscribeMuted } from '../lib/sound'
 import { speak, stopSpeaking } from '../lib/speech'
 import type { Decision } from '../lib/types'
 import { useSpeechInput } from '../lib/useSpeechInput'
 import { useAppStore } from '../store/useAppStore'
 
+const TOO_BIG_LINE = `That is too big for me to price properly, it is over £${TOO_BIG_GBP.toLocaleString('en-GB')}. Try something smaller.`
+
 const THINKING = ['Consulting the mists…', 'Stirring the cauldron…', 'Asking the stars…', 'Polishing the crystal…']
 
-type Stage = 'idle' | 'pricing' | 'asking' | 'ready' | 'fallback' | 'error'
+type Stage = 'idle' | 'pricing' | 'asking' | 'ready' | 'toobig' | 'fallback' | 'error'
 
 /** The ball's thinking lines, changing every second or so. */
 function ThinkingLine() {
@@ -91,6 +89,12 @@ export function Oracle() {
         void speak(res.question)
         return
       }
+      if (res.kind === 'toobig') {
+        setStage('toobig')
+        play('nudge')
+        void speak(TOO_BIG_LINE)
+        return
+      }
       addCustoms(res.decisions) // every habit found waits on the belt, even the ones you don't start right now
       setPlans(res.decisions)
       setStage('ready')
@@ -134,7 +138,9 @@ export function Oracle() {
       ? ask.question
       : stage === 'ready'
         ? fortuneLine(plans)
-        : stage === 'fallback'
+        : stage === 'toobig'
+          ? TOO_BIG_LINE
+          : stage === 'fallback'
           ? 'Qwen is asleep. Here is the closest I can find.'
           : stage === 'error'
             ? 'The mist is cloudy. Try rewording.'
@@ -238,11 +244,17 @@ export function Oracle() {
         )}
 
         {stage === 'ready' && plans.length > 0 && (
-          <div className="anim-pop w-full space-y-3">
+          <div className="anim-pop flex w-full max-w-[560px] flex-col items-center gap-3 text-center">
             {saving && (
-              <div className="mx-auto w-full max-w-[560px] border-4 border-ink bg-lime p-4 text-center text-ink">
+              <div className="w-full border-4 border-ink bg-lime p-4 text-ink">
                 <SavingBig delta={saving.amount} once={saving.once} />
                 {plans.length > 1 && <p className="mt-2 text-[15px]">across {saving.count} {saving.count === 1 ? 'thing' : 'things'} we found</p>}
+                <ul className="mt-3 space-y-1 text-[16px] leading-snug">
+                  {plans.map((p) => {
+                    const line = savingExplain(p)
+                    return line ? <li key={p.id}>{line}</li> : null
+                  })}
+                </ul>
               </div>
             )}
             {plans.length > 1 && (
@@ -250,38 +262,10 @@ export function Oracle() {
                 I found <b>{plans.length} things</b> in that. We'll go through them one after another.
               </p>
             )}
-            <div className={`grid gap-4 text-ink ${plans.length > 1 ? 'md:grid-cols-2' : ''}`}>
-              {plans.map((plan) => {
-                const sw = bestSwitch(plan)
-                return (
-                  <PlanPanel
-                    key={plan.id}
-                    title={plan.title}
-                    icon={plan.icon}
-                    options={plan.options}
-                    usualId={plan.usualId}
-                    footer={
-                      <p className="text-[20px] leading-snug">
-                        ≈ <b>{gbp(monthlyCost(plan.options.find((o) => o.id === plan.usualId)!, plan))}</b>
-                        {isOneOff(plan) ? ' once' : ' a month'}
-                        {sw && (
-                          <>
-                            . {sw.option.name} would save about <b>{gbp(sw.monthlyGBP)}</b>.
-                          </>
-                        )}
-                      </p>
-                    }
-                  />
-                )
-              })}
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <PixelButton data-fx="star" onClick={() => startQueue(plans)}>
-                {plans.length > 1 ? `Start with ${plans[0].title}` : 'See the trade-offs'}
-              </PixelButton>
-              {plans.length > 1 && <span className="text-[15px]">The others follow straight after.</span>}
-              <span className="text-[14px] text-white/70">Estimates from Qwen. Real prices vary.</span>
-            </div>
+            <PixelButton className="w-full" data-fx="star" onClick={() => startQueue(plans)}>
+              {plans.length > 1 ? `Open the full answer: ${plans[0].title}` : 'Open the full answer'}
+            </PixelButton>
+            <span className="text-[14px] text-white/70">Estimates from Qwen. Real prices vary.</span>
           </div>
         )}
 
@@ -298,6 +282,8 @@ export function Oracle() {
             </PixelButton>
           </div>
         )}
+
+        {stage === 'toobig' && <p className="text-center text-[17px]">{TOO_BIG_LINE}</p>}
 
         {stage === 'error' && <p className="text-[17px]">Couldn't price that one. Try rewording.</p>}
       </div>

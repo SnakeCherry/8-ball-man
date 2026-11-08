@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { PixelArt } from './PixelArt'
 import { PixelButton, PixelCard, Label } from './ui'
 import { gbp, timeSavedText } from '../lib/format'
+import { lifeFromPoints, signedSpan } from '../lib/life'
 import { buildPlan, plainHeadline, planHeadline } from '../lib/plan'
 import { useAppStore } from '../store/useAppStore'
 
@@ -50,7 +51,7 @@ export function NextWeekPlan() {
                   </span>
                   <span className="num mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[14px]">
                     <b className="border-2 border-ink bg-lime px-1">about {gbp(it.weeklyGBP)} a week</b>
-                    <span>{it.healthDelta === 0 ? 'same health' : `${it.healthDelta > 0 ? '+' : '−'}${Math.abs(it.healthDelta)} health`}</span>
+                    <span>{it.healthDelta === 0 ? 'same health' : `${signedSpan(lifeFromPoints(it.healthDelta))} of life`}</span>
                     <span>{timeSavedText(it.minutes)}</span>
                   </span>
                   <span className="block text-[14px] text-muted">{it.decision.title}</span>

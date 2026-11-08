@@ -14,7 +14,7 @@ export const AXIS_LABEL: Record<Axis, { ask: string; word: string; short: string
 export const PODIUM_TITLE: Record<Axis, { title: string; sub: string }> = {
   cost: { title: 'Cheapest', sub: 'how much' },
   time: { title: 'Fastest', sub: 'how fast' },
-  health: { title: 'Healthiest', sub: 'how healthy' },
+  health: { title: 'Healthiest', sub: 'life each time' },
 }
 
 export const PRIORITY_CHIPS: { id: Priority; label: string }[] = [

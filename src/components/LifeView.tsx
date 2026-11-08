@@ -4,11 +4,11 @@ import { MAX_YEARS, exchangeLine, formatSpan, lifeHeadline, projectLife, signedS
 import type { LifeItem } from '../lib/life'
 
 const W = 560
-const H = 270
+const H = 172
 const X0 = 54
 const X1 = 530
-const Y0 = 20
-const Y1 = 232
+const Y0 = 12
+const Y1 = 138
 const TIME = '#5aa9ff'
 const LIFE = '#ff6b6b'
 const CHIPS = [1, 5, 10, 25, 50]
@@ -43,7 +43,7 @@ export function LifeView({ items }: { items: LifeItem[] }) {
   const exchange = exchangeLine(weekly)
 
   return (
-    <PixelCard className="space-y-4">
+    <PixelCard className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Label>Time vs life</Label>
         <span className="border-4 border-ink bg-white px-1 font-pixel text-[12px] uppercase">Rough estimate</span>
@@ -58,25 +58,25 @@ export function LifeView({ items }: { items: LifeItem[] }) {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-3">
-            <div className="border-4 border-ink p-3" style={{ background: '#e4f1ff' }}>
+            <div className="border-4 border-ink p-2" style={{ background: '#e4f1ff' }}>
               <p className="flex items-center gap-2 font-pixel text-[12px] uppercase">
                 <PixelIcon name="clock" size={2} color={TIME} /> Free time
               </p>
-              <p className="num mt-2 text-[30px] font-semibold leading-none">{signedSpan(lastTime)}</p>
-              <p className="mt-1 text-[14px]">{lastTime >= 0 ? 'banked' : 'given up'}</p>
+              <p className="num mt-1 text-[22px] font-semibold leading-none">{signedSpan(lastTime)}</p>
+              <p className="text-[13px]">{lastTime >= 0 ? 'banked' : 'given up'}</p>
             </div>
-            <div className="border-4 border-ink p-3" style={{ background: '#ffe6e6' }}>
+            <div className="border-4 border-ink p-2" style={{ background: '#ffe6e6' }}>
               <p className="flex items-center gap-2 font-pixel text-[12px] uppercase">
                 <PixelIcon name="heart" size={2} color={LIFE} /> Life
               </p>
-              <p className="num mt-2 text-[30px] font-semibold leading-none">{signedSpan(lastLife)}</p>
-              <p className="mt-1 text-[14px]">{lastLife >= 0 ? 'could be gained' : 'could be lost'}</p>
+              <p className="num mt-1 text-[22px] font-semibold leading-none">{signedSpan(lastLife)}</p>
+              <p className="text-[13px]">{lastLife >= 0 ? 'could be gained' : 'could be lost'}</p>
             </div>
           </div>
 
-          <p className="text-[19px] leading-snug">{lifeHeadline(lastTime, lastLife, years)}</p>
+          <p className="text-[16px] leading-snug">{lifeHeadline(lastTime, lastLife, years)}</p>
 
-          <svg viewBox={`0 0 ${W} ${H}`} className="block w-full" role="img" aria-label={lifeHeadline(lastTime, lastLife, years)}>
+          <svg viewBox={`0 0 ${W} ${H}`} className="mx-auto block w-full max-w-[420px]" role="img" aria-label={lifeHeadline(lastTime, lastLife, years)}>
             {ticks.map((t, i) => (
               <g key={i} aria-hidden="true">
                 <line x1={X0} x2={X1} y1={sy(t)} y2={sy(t)} stroke="#0a0a0a" strokeOpacity={0.15} strokeWidth={2} strokeDasharray="4 6" />
@@ -94,33 +94,32 @@ export function LifeView({ items }: { items: LifeItem[] }) {
               </text>
             ))}
             {/* the lines draw themselves in stepped frames; the key restarts them when the years change */}
-            <path key={`t${years}`} d={timePath} pathLength={1} fill="none" stroke={TIME} strokeWidth={5} strokeLinejoin="miter" className="life-line" />
-            <path key={`l${years}`} d={lifePath} pathLength={1} fill="none" stroke={LIFE} strokeWidth={5} strokeLinejoin="miter" className="life-line" style={{ animationDelay: '0.25s' }} />
+            <path key={`t${years}`} d={timePath} pathLength={1} fill="none" stroke={TIME} strokeWidth={4} strokeLinejoin="miter" className="life-line" />
+            <path key={`l${years}`} d={lifePath} pathLength={1} fill="none" stroke={LIFE} strokeWidth={4} strokeLinejoin="miter" className="life-line" style={{ animationDelay: '0.25s' }} />
             <rect x={X1 - 7} y={sy(lastTime / DAY) - 7} width={14} height={14} fill={TIME} stroke="#0a0a0a" strokeWidth={3} aria-hidden="true" />
             <rect x={X1 - 7} y={sy(lastLife / DAY) - 7} width={14} height={14} fill={LIFE} stroke="#0a0a0a" strokeWidth={3} aria-hidden="true" />
           </svg>
 
-          {exchange && <p className="text-[17px] leading-snug">{exchange}</p>}
+          {exchange && <p className="text-[15px] leading-snug">{exchange}</p>}
         </>
       )}
 
-      <div className="space-y-2">
+      <div className="grid items-center gap-3 sm:grid-cols-[1fr_auto]">
         <label className="block text-[15px]">
           Keep it up for <b className="num">{years} {years === 1 ? 'year' : 'years'}</b>
-          <input type="range" className="pslider mt-2" min={1} max={MAX_YEARS} step={1} value={years} onChange={(e) => setYears(Number(e.target.value))} />
+          <input type="range" className="pslider mt-1" min={1} max={MAX_YEARS} step={1} value={years} onChange={(e) => setYears(Number(e.target.value))} />
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Quick years">
           {CHIPS.map((c) => (
-            <PixelButton key={c} variant={years === c ? 'lime' : 'white'} className="!min-h-[44px] !px-3 !py-1 text-[14px]" aria-pressed={years === c} onClick={() => setYears(c)}>
-              {c} {c === 1 ? 'year' : 'years'}
+            <PixelButton key={c} variant={years === c ? 'lime' : 'white'} className="!min-h-[44px] !px-2 !py-1 text-[14px]" aria-pressed={years === c} onClick={() => setYears(c)}>
+              {c}y
             </PixelButton>
           ))}
         </div>
       </div>
 
-      <p className="text-[14px] leading-snug text-muted">
-        A rough, illustrative estimate, not medical advice. It assumes one of our 1 to 10 health points is worth about 30 minutes of life each time,
-        based on the idea that average effects on a whole population can be counted in minutes. Our health scores are our own judgement.
+      <p className="text-[13px] leading-snug text-muted">
+        A rough, illustrative estimate, not medical advice: it counts each of our health points as about 30 minutes of life, each time.
       </p>
     </PixelCard>
   )

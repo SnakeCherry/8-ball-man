@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { BadgeShelf } from '../components/BadgeShelf'
 import { CountUp } from '../components/CountUp'
@@ -6,11 +6,11 @@ import { LifeView } from '../components/LifeView'
 import { NextWeekPlan } from '../components/NextWeekPlan'
 import { PixelArt } from '../components/PixelArt'
 import { PixelButton, PixelCard, Label } from '../components/ui'
-import { APP_NAME, EMPTY_HISTORY } from '../data/copy'
+import { EMPTY_HISTORY } from '../data/copy'
 import { badgeLevels, badgeStats } from '../lib/badges'
 import { gbp, mins } from '../lib/format'
-import { personality, resolveHistory, totals, winWinScore, wrappedText } from '../lib/recap'
-import { shareText } from '../lib/share'
+import { formatSpan, lifeFromPoints } from '../lib/life'
+import { personality, resolveHistory, totals, winWinScore } from '../lib/recap'
 import { useAppStore } from '../store/useAppStore'
 
 function Tile({ label, tone, children, sub }: { label: string; tone: string; children: ReactNode; sub: string }) {
@@ -28,8 +28,22 @@ export function Recap() {
   const chains = useAppStore((s) => s.chains)
   const usual = useAppStore((s) => s.usual)
   const go = useAppStore((s) => s.go)
-  const [note, setNote] = useState('')
-  const [badgesOpen, setBadgesOpen] = useState(false)
+  const showMedals = useAppStore((s) => s.showMedals)
+  const [badgesOpen, setBadgesOpen] = useState(showMedals)
+  const medalsRef = useRef<HTMLElement>(null)
+  const scrollToMedals = () => window.setTimeout(() => medalsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 250)
+  const showMedalShelf = () => {
+    setBadgesOpen(true)
+    scrollToMedals()
+  }
+  // arriving from "See all my medals": open the shelf, scroll to it, and forget the request
+  useEffect(() => {
+    if (!showMedals) return
+    useAppStore.setState({ showMedals: false })
+    scrollToMedals()
+    // runs once on arrival
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const entries = useMemo(() => resolveHistory(history, usual), [history, usual])
   const t = totals(history, entries)
@@ -50,11 +64,6 @@ export function Recap() {
         <PixelButton onClick={() => go('home')}>Pick a decision</PixelButton>
       </PixelCard>
     )
-  }
-
-  const share = async () => {
-    const r = await shareText(wrappedText(APP_NAME, who, t, score))
-    setNote(r === 'copied' ? 'Copied. Paste it anywhere.' : '')
   }
 
   const money = t.savedGBP >= 0
@@ -81,14 +90,9 @@ export function Recap() {
           </p>
         </div>
         <div className="space-y-2">
-          <PixelButton variant="white" data-fx="star" className="w-full" onClick={share}>
-            Share my wrapped
+          <PixelButton variant="white" data-fx="star" className="w-full" onClick={showMedalShelf}>
+            See all my medals
           </PixelButton>
-          {note && (
-            <p role="status" className="text-[14px]">
-              {note}
-            </p>
-          )}
         </div>
       </PixelCard>
 
@@ -98,12 +102,13 @@ export function Recap() {
           {money ? '+' : '−'}
           <CountUp value={Math.abs(t.savedGBP)} format={gbp} delayMs={150} />
         </Tile>
-        <Tile label="Time" tone="bg-white" sub={time ? 'saved' : 'extra'}>
+        <Tile label="Free time" tone={time ? 'bg-white' : 'bg-red'} sub={time ? 'saved' : 'spent'}>
+          {time ? '+' : '−'}
           <CountUp value={Math.abs(t.minutes)} format={mins} delayMs={250} />
         </Tile>
-        <Tile label="Health" tone={health ? 'bg-white' : 'bg-red'} sub={health ? 'points gained' : 'points given up'}>
+        <Tile label="Life" tone={health ? 'bg-white' : 'bg-red'} sub={health ? 'added by your choices' : 'given up by your choices'}>
           {health ? '+' : '−'}
-          <CountUp value={Math.abs(t.health)} format={(n) => `${Math.round(n)}`} delayMs={350} />
+          <CountUp value={Math.abs(lifeFromPoints(t.health))} format={formatSpan} delayMs={350} />
         </Tile>
         <Tile
           label="Better than usual"
@@ -126,7 +131,7 @@ export function Recap() {
 
       <LifeView items={lifeItems} />
 
-      <section aria-label="Medals">
+      <section ref={medalsRef} aria-label="Medals">
         <button type="button" aria-expanded={badgesOpen} onClick={() => setBadgesOpen((v) => !v)} className="pbtn pbtn-white w-full justify-between">
           <span>Medals: {earned} of {levels.length} earned</span>
           <span aria-hidden="true">{badgesOpen ? '−' : '+'}</span>

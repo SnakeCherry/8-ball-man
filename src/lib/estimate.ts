@@ -16,6 +16,7 @@ Per single use give cost in pounds, time in minutes and a health score from 1 to
 Uses per month: weekday habit 20, 'most days' 20, weekly 4, monthly 1. A condition such as "only when it is on offer" or "when I can" means it happens less often, so use a lower number (2 to 6).
 A ONE-OFF PURCHASE (a console, laptop, bike, phone) is different: uses per month is 0, each option's cost is the full price, and minutes is how long until they have it (delivery, queueing or waiting, e.g. 1440 per day, 4320 for 3 days).
 Names max 3 words.
+If the main thing costs more than £5,000 (a house, a car, a deposit), reply with ONE line and nothing else: !|too big
 Reply with nothing else. Each block is exactly 4 lines, fields separated by |
 Line 1: uses per month|activity name
 Lines 2-4: option name|icon|cost|minutes|health score
@@ -48,7 +49,7 @@ const text = (s: unknown, max: number): string | null => (typeof s === 'string' 
 let seq = 0
 
 /** Build a safe Decision from whatever the model returned, or null if it is unusable. */
-export function sanitiseDecision(raw: unknown, said = ''): Decision | null {
+export function sanitiseDecision(raw: unknown, _said = ''): Decision | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
   const title = text(r.activity, 40)
@@ -71,7 +72,7 @@ export function sanitiseDecision(raw: unknown, said = ''): Decision | null {
     id: `custom-${slug}-${Date.now().toString(36)}${(seq++).toString(36)}`,
     title,
     icon: isIconName(r.icon) ? r.icon : options[0].icon,
-    blurb: said ? `You said: "${said.slice(0, 80)}"` : 'Estimated from what you told us.',
+    blurb: 'Priced from what you said.',
     timesPerMonth: Math.round(times),
     options: options as [Option, Option, Option],
     usualId: options[usual].id,
@@ -154,7 +155,10 @@ const toRaw = (p: ParsedEstimate) => ({
   options: p.options,
 })
 
-export type EstimateResult = { kind: 'plans'; decisions: Decision[] } | { kind: 'ask'; question: string; choices: string[] }
+/** Anything priced above this is too big to assess properly (a house, a car): we say so instead of clipping the number. */
+export const TOO_BIG_GBP = 5000
+
+export type EstimateResult = { kind: 'plans'; decisions: Decision[] } | { kind: 'ask'; question: string; choices: string[] } | { kind: 'toobig' }
 
 /** Read a `?|question|choice|choice` line, or null when the reply is not a question. */
 export function parseQuestion(text: string): { question: string; choices: string[] } | null {
@@ -225,9 +229,11 @@ export async function estimateDecisions(said: string, onPartial?: (groups: Parse
     }
     onPartial?.(parseGroups(reply, false))
   }
+  if (/^[\s`>*-]*!\|/.test(reply)) return { kind: 'toobig' }
   const ask = canAsk ? parseQuestion(reply) : null
   if (ask) return { kind: 'ask', ...ask }
   const groups = parseGroups(reply, true)
+  if (groups.some((g) => g.options.some((o) => o.costGBP > TOO_BIG_GBP))) return { kind: 'toobig' }
   onPartial?.(groups)
   const decisions = groups.map((g) => sanitiseDecision(toRaw(g), said)).filter((d): d is Decision => d !== null)
   if (!decisions.length) throw new Error('unusable estimate')

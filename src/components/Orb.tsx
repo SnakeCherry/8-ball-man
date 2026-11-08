@@ -13,8 +13,12 @@ const BASE: Record<BallMood, number> = { idle: 0.1, listening: 0.18, thinking: 0
 
 const reduced = (): boolean => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+const RES = 40 // the orb is drawn on a 40 x 40 grid and scaled up, so every "pixel" is a chunky square
+const LEVELS = 4 // colours per channel after posterising
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5]
+
 /**
- * A glowing voice orb: soft coloured blobs drift and swell with the live loudness (your voice while you talk, the
+ * A glowing voice orb, drawn pixelated: soft coloured blobs drift and swell with the live loudness (your voice while you talk, the
  * ball's while it answers), a bit like a voice-assistant orb. Draws into a canvas, one frame at a time, reading the
  * level straight from the store so React never re-renders for it.
  */
@@ -31,15 +35,10 @@ export function Orb({ mood }: { mood: BallMood }) {
     let smooth = 0.1
     const still = reduced()
 
-    const fit = () => {
-      const dpr = Math.min(2, window.devicePixelRatio || 1)
-      const w = Math.max(1, Math.round(canvas.clientWidth * dpr))
-      if (canvas.width !== w) canvas.width = canvas.height = w
-    }
+    canvas.width = canvas.height = RES
 
     const draw = (ms: number) => {
-      fit()
-      const S = canvas.width
+      const S = RES
       const c = S / 2
       const t = still ? 0 : ms / 1000
       const target = Math.max(getLevel(), BASE[moodRef.current])
@@ -75,22 +74,36 @@ export function Orb({ mood }: { mood: BallMood }) {
       g.fillStyle = core
       g.fillRect(0, 0, S, S)
       g.strokeStyle = `rgba(255,255,255,${0.15 + 0.35 * s})`
-      g.lineWidth = Math.max(1, S / 60)
+      g.lineWidth = 1
       g.beginPath()
       g.arc(c, c, c * (0.45 + 0.4 * s + 0.04 * Math.sin(t * 5)), 0, Math.PI * 2)
       g.stroke()
 
+      // posterise to a few colours with an ordered dither, and cut the circle on the grid so its edge is stepped too
+      const img = g.getImageData(0, 0, S, S)
+      const d = img.data
+      const step = 255 / (LEVELS - 1)
+      for (let y = 0; y < S; y++) {
+        for (let x = 0; x < S; x++) {
+          const i = (y * S + x) * 4
+          const dx = x + 0.5 - c
+          const dy = y + 0.5 - c
+          if (dx * dx + dy * dy > (c - 0.5) * (c - 0.5)) {
+            d[i + 3] = 0
+            continue
+          }
+          const bias = (BAYER[(y % 4) * 4 + (x % 4)] / 16 - 0.5) * step
+          for (let k = 0; k < 3; k++) d[i + k] = Math.max(0, Math.min(255, Math.round((d[i + k] + bias) / step) * step))
+          d[i + 3] = 255
+        }
+      }
+      g.putImageData(img, 0, 0)
+
       if (!still) raf = requestAnimationFrame(draw)
     }
     raf = requestAnimationFrame(draw)
-    // when motion is reduced there is no loop, so repaint when the size or mood changes
-    const ro = still ? new ResizeObserver(() => draw(0)) : null
-    ro?.observe(canvas)
-    return () => {
-      cancelAnimationFrame(raf)
-      ro?.disconnect()
-    }
+    return () => cancelAnimationFrame(raf)
   }, [])
 
-  return <canvas ref={ref} className="block h-full w-full" aria-hidden="true" />
+  return <canvas ref={ref} className="block h-full w-full" style={{ imageRendering: 'pixelated' }} aria-hidden="true" />
 }

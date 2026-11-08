@@ -50,14 +50,14 @@ export function Reveal() {
   useEffect(() => {
     if (!decisionId) return
     const dd = getDecision(decisionId)
-    const facts = buildFacts(dd, suggestWith(dd, weights).weights)
+    const facts = buildFacts(dd, suggestWith(dd, weights).weights, usual[dd.id] ?? dd.usualId)
     setAdvice(plainAdvice(facts))
     let live = true
     void adviceFor(facts).then((text) => live && setAdvice(text))
     return () => {
       live = false
     }
-  }, [decisionId, weights])
+  }, [decisionId, weights, usual])
 
   // once the score lands, the host reads out the result (if you guessed) and then our suggestion
   const announced = useRef(false)
@@ -68,7 +68,7 @@ export function Reveal() {
     const dd = getDecision(decisionId)
     const u = dd.options.find((o) => o.id === (usual[dd.id] ?? dd.usualId))!
     const sug = suggestWith(dd, weights)
-    const facts = buildFacts(dd, sug.weights)
+    const facts = buildFacts(dd, sug.weights, usual[dd.id] ?? dd.usualId)
     const bnd = guess === null ? null : band(guessError(guess, monthlyCost(u, dd)))
     play(bnd === null || bnd === 'bullseye' || bnd === 'close' ? 'bullseye' : 'miss')
     void adviceFor(facts).then((text) => {
@@ -230,7 +230,7 @@ export function Reveal() {
         {compare && (
           <div className="mt-6 grid gap-6 lg:grid-cols-3">
             {AXES.map((axis, i) => (
-              <Podium key={axis} options={d.options} axis={axis} delay={base + i * gap} oneOff={isOneOff(d)} />
+              <Podium key={axis} options={d.options} axis={axis} usual={usualOpt} delay={base + i * gap} oneOff={isOneOff(d)} />
             ))}
           </div>
         )}

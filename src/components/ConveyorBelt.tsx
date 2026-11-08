@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PixelArt } from './PixelArt'
+import { SIZE, dims } from '../lib/pixelart'
 import { PixelIcon } from './ui'
 import { gbp } from '../lib/format'
 import type { Decision } from '../lib/types'
@@ -34,7 +35,7 @@ function BeltCard({ item, onPick, clone }: { item: BeltItem; onPick: (id: string
         className="pbox pselect flex h-full w-full flex-col gap-2 p-3"
       >
         <span className="flex items-start justify-between gap-2">
-          <span className="belt-plate" aria-hidden="true">
+          <span className={`belt-plate${dims(d.icon).w > SIZE ? ' belt-plate-bare' : ''}`} aria-hidden="true">
             <PixelArt name={d.icon} size={4} />
           </span>
           {mine ? (

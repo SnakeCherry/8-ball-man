@@ -3,8 +3,6 @@ import type { Decision, Option } from './types'
 /** Within this fraction of the truth counts as a close call. */
 export const CLOSE = 0.25
 export const BULLSEYE = 0.1
-/** Seconds on the clock for the monthly-cost guess. */
-export const COUNTDOWN_S = 10
 
 /** What the habit costs a month; for a one-off purchase (0 uses a month) that is simply the price, once. */
 export const monthlyCost = (o: Option, d: Decision): number => o.costGBP * (d.timesPerMonth > 0 ? d.timesPerMonth : 1)

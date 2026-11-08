@@ -84,6 +84,19 @@ export function formatSpan(minutes: number): string {
 /** "+34 days" or "-34 days". */
 export const signedSpan = (minutes: number): string => `${minutes < 0 ? '−' : '+'}${formatSpan(minutes)}`
 
+/** Life gained (+) or lost (-), in minutes, each time you pick this option instead of your usual. */
+export const lifeEach = (o: { health: number }, usual: { health: number }): number => (o.health - usual.health) * LIFE_MIN_PER_POINT
+
+/** Minutes of life for a number of health points (the totals on Home, Result and Recap). */
+export const lifeFromPoints = (points: number): number => points * LIFE_MIN_PER_POINT
+
+/** An option's health in words that mean something: "+3 hours of life" against your usual, or "Your usual". */
+export function lifeEachText(o: { id?: string; health: number }, usual: { id?: string; health: number }): string {
+  if (o.id !== undefined && o.id === usual.id) return 'Your usual'
+  const m = lifeEach(o, usual)
+  return Math.abs(m) < 1 ? 'Same as usual' : `${signedSpan(m)} of life`
+}
+
 /** How many minutes of life a minute of free time buys (or costs), in a sentence. Null when there is no trade-off to talk about. */
 export function exchangeLine(w: WeeklyEffect): string | null {
   const { timeMin, lifeMin } = w
@@ -98,8 +111,8 @@ export function exchangeLine(w: WeeklyEffect): string | null {
 /** One sentence for the whole projection. */
 export function lifeHeadline(timeMin: number, lifeMin: number, years: number): string {
   const span = `${years} ${years === 1 ? 'year' : 'years'}`
-  if (Math.abs(timeMin) < 1 && Math.abs(lifeMin) < 1) return `Over ${span} your choices come out the same as your usual.`
+  if (Math.abs(timeMin) < 1 && Math.abs(lifeMin) < 1) return `Over ${span} your choices come out the same as your usual, based on your actions.`
   const time = timeMin >= 0 ? `bank ${formatSpan(timeMin)} of free time` : `give up ${formatSpan(timeMin)} of free time`
   const life = Math.abs(lifeMin) < 1 ? 'change nothing for your health' : lifeMin > 0 ? `could add about ${formatSpan(lifeMin)} of life` : `could cost about ${formatSpan(lifeMin)} of life`
-  return `Over ${span} you'd ${time} and ${life}.`
+  return `Over ${span} you'd ${time} and ${life}, based on your actions.`
 }
