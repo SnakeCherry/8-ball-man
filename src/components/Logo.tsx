@@ -2,16 +2,16 @@ import { PixelArt } from './PixelArt'
 import { APP_NAME } from '../data/copy'
 
 /**
- * The Magical 8-Ball logo: a pixel 8-ball beside a chunky pixel
+ * The 8-Ball Man logo: the pixel walker with an 8-ball for a head, beside a chunky pixel
  * wordmark with a two-tone offset shadow. Clickable (takes you home) when `onClick` is given.
  */
 export function Logo({ onClick }: { onClick?: () => void }) {
   const inner = (
     <>
-      <PixelArt name="logo" size={3} natural className="logo-icon" />
+      <PixelArt name="logo" size={3} natural animate className="logo-icon" />
       <span className="logo-word font-pixel uppercase leading-[1.15]">
-        <span className="block text-[16px]">Magical</span>
         <span className="block text-[16px]">8-Ball</span>
+        <span className="block text-[16px]">Man</span>
       </span>
     </>
   )
