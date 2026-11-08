@@ -18,7 +18,7 @@ export function fortuneLine(plans: Decision[]): string {
   if (!sw) {
     // nothing beats the usual on price: say so, and be honest if it is poor for your health
     const gain = Math.max(0, ...d.options.map((o) => lifeEach(o, usual)))
-    if (usual.health <= 4 && gain >= 1) return `Nothing here is cheaper than ${usual.name}, but a healthier choice could add ${formatSpan(gain)} of life${isOneOff(d) ? '' : ' each time'}.`
+    if (usual.health <= 4 && gain >= 1) return `Nothing here is cheaper than ${usual.name}, but a healthier choice could add ${formatSpan(gain)} to your life${isOneOff(d) ? '' : ' each time'}.`
     return `${usual.name} is already a good call, about ${gbp(monthlyCost(usual, d))}${isOneOff(d) ? '' : ' a month'}.`
   }
   return `The signs say: ${sw.option.name}. About ${gbp(sw.monthlyGBP)} ${isOneOff(d) ? 'saved' : 'saved a month'}.`

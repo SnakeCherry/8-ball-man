@@ -233,7 +233,7 @@ export function Oracle() {
                   <p className="flex items-center justify-center gap-2 text-[17px] leading-relaxed">
                     <PixelArt name="heart" size={2} />
                     <span>
-                      And about <b>{formatSpan(lifeMin)}</b> of {lifeMin >= 0 ? 'extra ' : 'less '}life over 10 years, based on your actions.
+                      It could {lifeMin >= 0 ? 'add' : 'take'} about <b>{formatSpan(lifeMin)}</b> {lifeMin >= 0 ? 'to' : 'off'} your life over 10 years, based on your actions.
                     </span>
                   </p>
                 )}

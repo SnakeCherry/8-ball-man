@@ -29,11 +29,11 @@ export function buildFacts(d: Decision, weights: Weights, usualId: string = d.us
 
 const PRIORITY_WORDS: Record<Priority, string> = { money: 'money', time: 'time', health: 'health', balanced: 'a bit of everything' }
 
-/** Health as life against the usual option, in words ("3 hours more life each time than Uber"). */
+/** Health as life against the usual option, in words ("adds 3 hours to their life each time compared with Uber"). */
 const lifeLine = (f: AdviceFacts, o: Option): string => {
   const m = lifeEach(o, f.usual)
   if (o.id === f.usual.id || Math.abs(m) < 1) return 'the same health as their usual'
-  return `${formatSpan(m)} ${m > 0 ? 'more' : 'less'} life${f.oneOff ? '' : ' each time'} than ${f.usual.name}`
+  return `${m > 0 ? 'adds' : 'takes'} ${formatSpan(m)} ${m > 0 ? 'to' : 'off'} their life${f.oneOff ? '' : ' each time'} compared with ${f.usual.name}`
 }
 
 const ago = (f: AdviceFacts, o: Option): string =>
@@ -110,15 +110,15 @@ const AXIS_WORD: Record<Axis, (f: AdviceFacts, other: Option, gap: number) => st
 /** Plain English from the facts alone, for when Qwen is down or says something that doesn't check out. */
 export function plainAdvice(f: AdviceFacts): string {
   const b = f.best
-  const opener = f.priority === 'balanced' ? `${b.name} is the best all-round choice` : `${b.name} fits best because you put ${PRIORITY_WORDS[f.priority]} first`
-  const cost = b.costGBP === 0 ? 'is free' : `costs ${gbp(b.costGBP)}${f.oneOff ? '' : ' a time'}`
-  const time = f.oneOff ? `arrives in ${mins(b.timeMin)}` : `takes ${mins(b.timeMin)}`
+  const opener = f.priority === 'balanced' ? `Go with ${b.name}` : `${b.name} is your best bet, since ${PRIORITY_WORDS[f.priority]} comes first for you`
+  const cost = b.costGBP === 0 ? "it's free" : `it costs ${gbp(b.costGBP)}${f.oneOff ? '' : ' a time'}`
+  const time = f.oneOff ? `it arrives in ${mins(b.timeMin)}` : `it takes about ${mins(b.timeMin)}`
   const m = lifeEach(b, f.usual)
   const life =
     b.id === f.usual.id || Math.abs(m) < 1
       ? ''
-      : ` and ${m > 0 ? 'could add' : 'could cost'} about ${formatSpan(m)} of life${f.oneOff ? '' : ' each time'} compared with ${f.usual.name}`
-  const body = `${opener}: it ${cost}, ${time}${life}.`
+      : ` and it ${m > 0 ? 'adds' : 'takes'} about ${formatSpan(m)} ${m > 0 ? 'to' : 'off'} your life${f.oneOff ? '' : ' each time'} compared with ${f.usual.name}`
+  const body = `${opener}: ${cost}, ${time}${life}.`
 
   // the catch: the one thing another option does clearly better
   let catchLine = ''
@@ -130,14 +130,14 @@ export function plainAdvice(f: AdviceFacts): string {
       const rel = gap / Math.max(Math.abs(axisValue(b, a)), 1)
       if (gap > 0 && rel > biggest) {
         biggest = rel
-        catchLine = `The catch: ${AXIS_WORD[a](f, o, gap)}.`
+        catchLine = `The only downside: ${AXIS_WORD[a](f, o, gap)}.`
       }
     }
   }
   return catchLine ? `${body} ${catchLine}` : body
 }
 
-const SYSTEM = `You write a short, friendly recommendation for a UK student (at most 45 words, plain English, no lists, no emoji). Say which option fits best and why, using what the person says matters most, and mention one honest downside. Use ONLY the numbers given, written like £7.50, 12 minutes or 3 hours of life. Health is given as life gained or lost against their usual option. Do not invent any other number. Do not call the person "the person".`
+const SYSTEM = `You are a friendly mate giving a UK student a quick tip about an everyday choice. Write 2 or 3 short, natural sentences (at most 40 words): say which option to go for, why in plain words that match what they care about most, and one honest downside. Sound like a person, not a report: use contractions, simple words, no lists, no emoji, and avoid stiff phrases such as "all-round", "prioritise", "compared with", "optimal" or "balance". Use ONLY the numbers given, written like £7.50, 12 minutes or 3 hours. Life effects are given against their usual option: say them like "adds about 3 hours to your life" or "takes 20 minutes off your life". Do not invent any other number. Never call them "the person". Example of the tone (no numbers): Walking's your best bet this week: it's free and good for you. The only downside is it takes a bit longer than the bus.`
 
 const cache = new Map<string, string>()
 const keyOf = (f: AdviceFacts): string => JSON.stringify([f.title, f.priority, f.best.id, f.options.map((o) => [o.name, o.costGBP, o.timeMin, o.health])])

@@ -65,8 +65,8 @@ describe('time vs life', () => {
     expect(signedSpan(120)).toBe('+2 hours')
   })
   it('puts the trade-off in a sentence', () => {
-    expect(exchangeLine(weeklyEffect(item('walk')))).toMatch(/give up could buy about .* of life for every hour/)
-    expect(exchangeLine(weeklyEffect(item('uber')))).toMatch(/save could cost/)
+    expect(exchangeLine(weeklyEffect(item('walk')))).toMatch(/give up could add about .* to your life/)
+    expect(exchangeLine(weeklyEffect(item('uber')))).toMatch(/save could take about .* off your life/)
     expect(exchangeLine({ timeMin: 0, lifeMin: 0 })).toBeNull()
     expect(exchangeLine({ timeMin: 10, lifeMin: 10 })).toBeNull() // both good: no trade-off to talk about
   })

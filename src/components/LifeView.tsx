@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { PixelButton, PixelCard, PixelIcon, Label } from './ui'
 import { MAX_YEARS, exchangeLine, formatSpan, lifeHeadline, projectLife, signedSpan, totalWeekly } from '../lib/life'
 import type { LifeItem } from '../lib/life'
+import { play } from '../lib/sound'
 
 const W = 560
 const H = 172
@@ -27,6 +28,16 @@ export function LifeView({ items }: { items: LifeItem[] }) {
   const [years, setYears] = useState(10)
   const proj = useMemo(() => projectLife(items, years), [items, years])
   const weekly = useMemo(() => totalWeekly(items), [items])
+
+  // the lines grow in (again each time the years change), so give them a rising blip too; wait out slider dragging
+  useEffect(() => {
+    if (items.length === 0 || (Math.abs(weekly.timeMin) < 1 && Math.abs(weekly.lifeMin) < 1)) return // no chart, no sound
+    const id = window.setTimeout(() => {
+      play('grow', 1)
+      window.setTimeout(() => play('grow', 1.33), 250)
+    }, 300)
+    return () => window.clearTimeout(id)
+  }, [years, items.length, weekly.timeMin, weekly.lifeMin])
 
   const lastTime = proj.time[proj.time.length - 1]
   const lastLife = proj.life[proj.life.length - 1]

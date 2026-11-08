@@ -90,21 +90,24 @@ export const lifeEach = (o: { health: number }, usual: { health: number }): numb
 /** Minutes of life for a number of health points (the totals on Home, Result and Recap). */
 export const lifeFromPoints = (points: number): number => points * LIFE_MIN_PER_POINT
 
-/** An option's health in words that mean something: "+3 hours of life" against your usual, or "Your usual". */
+/** "adds 3 hours to your life" or "takes 20 minutes off your life": reads naturally, unlike "3 hours of life". */
+export const lifeAdds = (minutes: number): string => `${minutes >= 0 ? 'adds' : 'takes'} ${formatSpan(minutes)} ${minutes >= 0 ? 'to' : 'off'} your life`
+
+/** An option's health in words that mean something: "adds 3 hours to your life" against your usual, or "Your usual". */
 export function lifeEachText(o: { id?: string; health: number }, usual: { id?: string; health: number }): string {
   if (o.id !== undefined && o.id === usual.id) return 'Your usual'
   const m = lifeEach(o, usual)
-  return Math.abs(m) < 1 ? 'Same as usual' : `${signedSpan(m)} of life`
+  return Math.abs(m) < 1 ? 'Same as usual' : lifeAdds(m)
 }
 
-/** How many minutes of life a minute of free time buys (or costs), in a sentence. Null when there is no trade-off to talk about. */
+/** What an hour of free time is worth in life, in a sentence ("Each hour you give up could add about 2 hours to your life"). Null when there is no trade-off to talk about. */
 export function exchangeLine(w: WeeklyEffect): string | null {
   const { timeMin, lifeMin } = w
   if (Math.abs(timeMin) < 1 || Math.abs(lifeMin) < 1) return null
   const per = Math.abs(lifeMin / timeMin)
-  const ratio = per >= 1 ? `about ${round1(per)} hours of life for every hour` : `about ${Math.max(1, Math.round(per * 60))} minutes of life for every hour`
-  if (timeMin < 0 && lifeMin > 0) return `Every hour of free time you give up could buy ${ratio}.`
-  if (timeMin > 0 && lifeMin < 0) return `Every hour of free time you save could cost ${ratio}.`
+  const span = per >= 1 ? `${round1(per)} hours` : `${Math.max(1, Math.round(per * 60))} minutes`
+  if (timeMin < 0 && lifeMin > 0) return `Each hour of free time you give up could add about ${span} to your life.`
+  if (timeMin > 0 && lifeMin < 0) return `Each hour you save could take about ${span} off your life.`
   return null
 }
 
@@ -113,6 +116,6 @@ export function lifeHeadline(timeMin: number, lifeMin: number, years: number): s
   const span = `${years} ${years === 1 ? 'year' : 'years'}`
   if (Math.abs(timeMin) < 1 && Math.abs(lifeMin) < 1) return `Over ${span} your choices come out the same as your usual, based on your actions.`
   const time = timeMin >= 0 ? `bank ${formatSpan(timeMin)} of free time` : `give up ${formatSpan(timeMin)} of free time`
-  const life = Math.abs(lifeMin) < 1 ? 'change nothing for your health' : lifeMin > 0 ? `could add about ${formatSpan(lifeMin)} of life` : `could cost about ${formatSpan(lifeMin)} of life`
+  const life = Math.abs(lifeMin) < 1 ? 'change nothing for your health' : lifeMin > 0 ? `could add about ${formatSpan(lifeMin)} to your life` : `could take about ${formatSpan(lifeMin)} off your life`
   return `Over ${span} you'd ${time} and ${life}, based on your actions.`
 }

@@ -106,14 +106,14 @@ describe('advice in plain English', () => {
   })
   it('writes a plain template from the facts alone', () => {
     const text = plainAdvice(facts)
-    expect(text).toContain('Walk fits best because you put money first')
+    expect(text).toContain('Walk is your best bet, since money comes first for you')
     expect(text).toContain('free')
-    expect(text).toMatch(/of life each time compared with/)
-    expect(text).toContain('The catch:')
+    expect(text).toMatch(/to your life each time compared with/)
+    expect(text).toContain('The only downside:')
     expect(validateAdvice(text, facts)).toBe(true) // the fallback always passes its own check
   })
   it('says "a bit of everything" for a balanced mix and "arrives in" for one-offs', () => {
-    expect(plainAdvice(buildFacts(commute, valuesToWeights({ cost: 5, time: 5, health: 5 })))).toContain('all-round')
+    expect(plainAdvice(buildFacts(commute, valuesToWeights({ cost: 5, time: 5, health: 5 })))).toContain('Go with')
     const oneOff = sanitiseDecision({
       activity: 'Console', icon: 'plate', timesPerMonth: 0, usualIndex: 0,
       options: [
@@ -123,7 +123,7 @@ describe('advice in plain English', () => {
       ],
     })!
     const text = plainAdvice(buildFacts(oneOff, money))
-    expect(text).toContain('arrives in')
+    expect(text).toContain('it arrives in')
     expect(text).not.toContain('a time')
     expect(validateAdvice(text, buildFacts(oneOff, money))).toBe(true)
   })

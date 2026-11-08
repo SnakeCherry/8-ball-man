@@ -9,7 +9,7 @@ import { VERDICT_LINE } from '../data/copy'
 import { getDecision } from '../data/decisions'
 import { burstAtElement } from '../lib/fx'
 import { gbp, timeSavedText } from '../lib/format'
-import { lifeFromPoints, signedSpan } from '../lib/life'
+import { lifeAdds, lifeFromPoints } from '../lib/life'
 import { ManReaction } from '../components/ManReaction'
 import { reactionLine } from '../lib/reaction'
 import { play } from '../lib/sound'
@@ -18,7 +18,7 @@ import { useAppStore } from '../store/useAppStore'
 import type { LastResult } from '../store/useAppStore'
 
 const money = (n: number): string => (Math.abs(n) < 0.005 ? 'Same as your usual' : n > 0 ? `${gbp(n)} saved` : `${gbp(n)} extra`)
-const health = (n: number): string => (n === 0 ? 'Same health' : `${signedSpan(lifeFromPoints(n))} of life`)
+const health = (n: number): string => (n === 0 ? 'Same health' : lifeAdds(lifeFromPoints(n)))
 
 /** What you picked and what it is worth: one card per habit from this run, plus the total when there were several. */
 export function Result() {

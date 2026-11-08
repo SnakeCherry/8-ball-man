@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { CountUp } from './CountUp'
+import { play } from '../lib/sound'
 import { PixelArt } from './PixelArt'
 import { axisFormat } from './parts'
 import { lifeEach, signedSpan } from '../lib/life'
@@ -29,6 +31,13 @@ export function Podium({ options, axis, usual, delay = 0, oneOff = false }: { op
     { o: first, rank: 1 as const, at: 0.6 },
     { o: third, rank: 3 as const, at: 0 },
   ]
+  // each step makes a rising blip as it grows (3rd, then 2nd, then 1st), a little higher each time
+  useEffect(() => {
+    const ids = cols.map(({ at, rank }) => window.setTimeout(() => play('grow', rank === 3 ? 1 : rank === 2 ? 1.26 : 1.5), (delay + at) * 1000 + 150))
+    return () => ids.forEach((id) => window.clearTimeout(id))
+    // plays once when the podium appears
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   return (
     <section aria-label={`${title.title}: ${title.sub}`}>
       <p className="mb-2 flex items-center gap-2 font-pixel text-[12px] uppercase">

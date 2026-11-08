@@ -46,7 +46,7 @@ describe('fortuneLine when the usual cannot be beaten', () => {
     const usual = d.options.find((o) => o.id === d.usualId)!
     usual.costGBP = 0
     usual.health = 3
-    expect(fortuneLine([d])).toMatch(/of life/)
+    expect(fortuneLine([d])).toMatch(/to your life/)
   })
   it('says the usual is a good call when it is healthy', () => {
     const d = structuredClone(DECISIONS[0])
