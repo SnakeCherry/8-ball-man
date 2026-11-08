@@ -16,7 +16,7 @@ import { useAppStore } from '../store/useAppStore'
 function Tile({ label, tone, children, sub }: { label: string; tone: string; children: ReactNode; sub: string }) {
   return (
     <div className={`pcard p-3 ${tone}`}>
-      <p className="font-pixel text-[9px] uppercase">{label}</p>
+      <p className="font-pixel text-[12px] uppercase">{label}</p>
       <p className="num mt-2 text-[34px] font-semibold leading-none">{children}</p>
       <p className="mt-1 text-[14px] leading-tight">{sub}</p>
     </div>
@@ -29,6 +29,7 @@ export function Recap() {
   const usual = useAppStore((s) => s.usual)
   const go = useAppStore((s) => s.go)
   const [note, setNote] = useState('')
+  const [badgesOpen, setBadgesOpen] = useState(false)
 
   const entries = useMemo(() => resolveHistory(history, usual), [history, usual])
   const t = totals(history, entries)
@@ -125,7 +126,17 @@ export function Recap() {
 
       <LifeView items={lifeItems} />
 
-      <BadgeShelf levels={levels} />
+      <section aria-label="Medals">
+        <button type="button" aria-expanded={badgesOpen} onClick={() => setBadgesOpen((v) => !v)} className="pbtn pbtn-white w-full justify-between">
+          <span>Medals: {earned} of {levels.length} earned</span>
+          <span aria-hidden="true">{badgesOpen ? '−' : '+'}</span>
+        </button>
+        {badgesOpen && (
+          <div className="mt-4">
+            <BadgeShelf levels={levels} />
+          </div>
+        )}
+      </section>
 
       <PixelButton className="w-full" onClick={() => go('home')}>
         Pick a decision

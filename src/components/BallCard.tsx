@@ -25,7 +25,7 @@ export function BallCard() {
           <button type="button" aria-label="Open the magic 8-ball and ask it something" className="block w-full select-none" data-fx="sparkle" onClick={() => askBall()}>
             <EightBall mood="idle" />
           </button>
-          <p className="text-center font-pixel text-[11px] uppercase leading-relaxed">Tap the ball and ask</p>
+          <p className="text-center font-pixel text-[12px] uppercase leading-relaxed">Tap the ball and ask</p>
         </div>
         <div className="min-w-0 space-y-4">
           <p className="text-[clamp(22px,2.6vw,30px)] leading-snug">Tell me what you spend on and I'll find you a cheaper way.</p>

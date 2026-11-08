@@ -94,7 +94,7 @@ export function Oracle() {
       addCustoms(res.decisions) // every habit found waits on the belt, even the ones you don't start right now
       setPlans(res.decisions)
       setStage('ready')
-      play('magic')
+      play(savingSummary(res.decisions) ? 'sparkle' : 'magic') // a saving is good news
       void speak(fortuneLine(res.decisions))
     } catch {
       const m = matchPreset(text)
@@ -152,7 +152,7 @@ export function Oracle() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto text-white" style={{ background: 'radial-gradient(ellipse at 50% 30%, #2a1470 0%, #140a3a 45%, #0b0620 100%)' }}>
+    <div className="night fixed inset-0 z-50 overflow-y-auto text-white" style={{ background: 'radial-gradient(ellipse at 50% 30%, #2a1470 0%, #140a3a 45%, var(--color-night) 100%)' }}>
       <Stars />
       <div className="relative mx-auto flex min-h-full max-w-3xl flex-col items-center gap-4 px-5 pb-10 pt-4">
         <div className="flex w-full items-center justify-between">
@@ -164,7 +164,7 @@ export function Oracle() {
             aria-pressed={muted}
             aria-label={muted ? 'Sound off. Turn sound on' : 'Sound on. Turn sound off'}
             onClick={() => setMuted(!muted)}
-            className="border-4 border-ink bg-white p-1 text-ink"
+            className="grid min-h-[44px] min-w-[44px] place-items-center border-4 border-ink bg-white p-1 text-ink"
           >
             <PixelIcon name={muted ? 'mute' : 'volume'} size={3} />
           </button>

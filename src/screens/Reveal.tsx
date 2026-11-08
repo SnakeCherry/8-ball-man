@@ -74,6 +74,7 @@ export function Reveal() {
     void adviceFor(facts).then((text) => {
       if (!mounted.current) return
       const line = `We suggest ${sug.suggested.name}. ${text}`
+      if (monthlyCost(u, dd) - monthlyCost(sug.suggested, dd) >= 0.5) play('sparkle') // good news first
       void speak(bnd === null ? line : `${HOST_LINE[bnd](gbp(monthlyCost(u, dd)))} ${line}`)
     })
   }, [scored, decisionId, guess, usual, weights])
@@ -119,11 +120,12 @@ export function Reveal() {
           <Label className="[&>span]:bg-white">1 · The answer</Label>
           <PixelButton
             variant="white"
-            className="!min-h-[36px] !px-3 !py-1 text-[13px]"
+            className="!min-h-[44px] !px-3 !py-1 text-[14px]"
             aria-label="Hear our suggestion"
             onClick={(e) => {
               e.stopPropagation()
               if (isMuted()) setMuted(false)
+              if (delta >= 0.5) play('sparkle')
               void speak(spoken)
             }}
           >
@@ -142,7 +144,7 @@ export function Reveal() {
             <p className="text-[18px] leading-snug" aria-live="polite">
               {advice}
             </p>
-            <p className="text-[14px] text-ink/70">{basis} You can change that on the next screen.</p>
+            <p className="text-[14px] text-muted">{basis} You can change that on the next screen.</p>
           </div>
           <div className="border-4 border-ink bg-white p-4 md:min-w-[280px]">
             <SavingBig delta={delta} once={isOneOff(d)} keep={keep} />
@@ -159,7 +161,7 @@ export function Reveal() {
           <PixelCard className="space-y-2">
             <div className="flex items-center justify-between gap-2">
               <Label>2 · Your habit</Label>
-              <span className="border-4 border-ink bg-white px-1 font-pixel text-[9px] uppercase">Estimate</span>
+              <span className="border-4 border-ink bg-white px-1 font-pixel text-[12px] uppercase">Estimate</span>
             </div>
             <p className="text-[20px]">
               <PixelArt name={d.icon} size={2} /> {d.title}
@@ -167,7 +169,7 @@ export function Reveal() {
             <p className="num text-[44px] font-semibold leading-none">
               <CountUp value={truth} format={gbp} delayMs={skipped ? 0 : 300} /> <span className="text-[20px] font-normal">{isOneOff(d) ? 'once' : 'a month'}</span>
             </p>
-            <p className="text-[14px] text-ink/70">
+            <p className="text-[14px] text-muted">
               {isOneOff(d) ? `${usualOpt.name}, a one-off` : `${usualOpt.name}, about ${d.timesPerMonth} times a month`}
             </p>
             {scored && <p className="anim-pop text-[16px] leading-snug">{habitLine(d, usualOpt)}</p>}
@@ -180,11 +182,11 @@ export function Reveal() {
             </p>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[14px] text-ink/70">You guessed</p>
+                <p className="text-[14px] text-muted">You guessed</p>
                 <p className="num text-[32px] leading-none">{gbp(guess)}</p>
               </div>
               <div>
-                <p className="text-[14px] text-ink/70">Real, a month</p>
+                <p className="text-[14px] text-muted">Real, a month</p>
                 <p className="num text-[32px] font-semibold leading-none">
                   <CountUp value={truth} format={gbp} delayMs={skipped ? 0 : 300} />
                 </p>
@@ -193,7 +195,7 @@ export function Reveal() {
             {scored && (
               <p className="anim-pop flex flex-wrap items-center gap-2 text-[16px]">
                 <span
-                  className={`flex items-center gap-1 border-4 border-ink px-1 font-pixel text-[10px] uppercase ${
+                  className={`flex items-center gap-1 border-4 border-ink px-1 font-pixel text-[12px] uppercase ${
                     isClose ? 'bg-lime' : b === 'near' ? 'bg-white' : 'bg-red'
                   }`}
                 >

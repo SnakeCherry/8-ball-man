@@ -38,13 +38,13 @@ function BeltCard({ item, onPick, clone }: { item: BeltItem; onPick: (id: string
             <PixelArt name={d.icon} size={4} />
           </span>
           {mine ? (
-            <span className="border-4 border-ink bg-white px-1 font-pixel text-[9px] uppercase">Yours</span>
+            <span className="border-4 border-ink bg-white px-1 font-pixel text-[12px] uppercase">Yours</span>
           ) : (
-            pick && <span className="border-4 border-ink bg-lime px-1 font-pixel text-[9px] uppercase">Pick</span>
+            pick && <span className="border-4 border-ink bg-lime px-1 font-pixel text-[12px] uppercase">Pick</span>
           )}
         </span>
         <span className="block text-[19px] leading-tight">{d.title}</span>
-        <span className="block text-[15px] leading-snug text-ink/70">{d.blurb}</span>
+        <span className="block text-[15px] leading-snug text-muted">{d.blurb}</span>
         <span className="num mt-auto block text-[14px]">
           Up to {gbp(spread)} a month between options
           {tried > 0 ? ` · Tried ${tried}×` : ''}
@@ -72,7 +72,7 @@ export function ConveyorBelt({ items, onPick }: { items: BeltItem[]; onPick: (id
           type="button"
           aria-pressed={paused}
           onClick={() => setPaused((p) => !p)}
-          className="pbtn pbtn-white !min-h-[40px] !px-3 !py-1 text-[13px]"
+          className="pbtn pbtn-white !min-h-[44px] !px-3 !py-1 text-[14px]"
         >
           <PixelIcon name={paused ? 'arrow' : 'clock'} size={2} />
           {paused ? 'Run belt' : 'Pause belt'}

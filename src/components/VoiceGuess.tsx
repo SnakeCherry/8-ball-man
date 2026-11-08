@@ -142,7 +142,7 @@ export function VoiceGuess({ onAmount }: { onAmount: (pounds: number) => void })
         </span>
       </PixelButton>
       {whisper && (phase === 'recording' || phase === 'decoding') && <Equaliser levels={levels} active={phase === 'recording'} />}
-      <p className="min-h-[1.5em] text-[15px] text-ink/70" aria-live="polite">
+      <p className="min-h-[1.5em] text-[15px] text-muted" aria-live="polite">
         {heard ? (
           <>
             Heard: "<Typed text={heard} />"

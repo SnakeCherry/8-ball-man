@@ -32,11 +32,11 @@ export function BadgeShelf({ levels }: { levels: BadgeLevel[] }) {
               </span>
             </div>
             <p className="mt-2 text-[17px] leading-tight">{l.def.name}</p>
-            <p className="mt-1 text-[13px] leading-tight">{l.def.line}</p>
+            <p className="mt-1 text-[14px] leading-tight">{l.def.line}</p>
             <div className="mt-2 h-3 border-2 border-ink bg-white" aria-hidden="true">
               <div className="h-full bg-ink" style={{ width: `${l.next === null ? 100 : Math.min(100, (l.value / l.next) * 100)}%`, transition: 'width 0.5s steps(8)' }} />
             </div>
-            <p className="num mt-1 text-[13px] leading-tight">
+            <p className="num mt-1 text-[14px] leading-tight">
               {l.next === null ? `Gold reached: ${show(l, l.value)}` : `${TIER_NAME[l.tier + 1]} at ${show(l, l.next)}. You have ${show(l, l.value)}.`}
             </p>
           </li>

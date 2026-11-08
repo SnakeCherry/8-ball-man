@@ -43,7 +43,7 @@ export function PlanPanel({
               <p className="num mt-1 text-[15px]">
                 {gbp(o.costGBP)} · {mins(o.timeMin)} · <PixelArt name="heart" size={1} /> {score(o.health)}
               </p>
-              {usual && <p className="mt-1 font-pixel text-[9px] uppercase">Your usual</p>}
+              {usual && <p className="mt-1 font-pixel text-[12px] uppercase">Your usual</p>}
             </div>
           ) : (
             <div key={i} className="anim-blink flex h-[72px] items-center justify-center border-4 border-dashed border-ink/40" aria-hidden="true">

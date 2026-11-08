@@ -71,21 +71,21 @@ export function EightBall({ mood, children }: { mood: BallMood; children?: React
         </g>
         {/* wizard hat */}
         <g className="ball-hat">
-          <rect x="16" y="0" width="32" height="2" fill="#4b2399" />
-          <rect x="22" y="-1" width="20" height="1" fill="#6b3fd4" />
+          <rect x="16" y="0" width="32" height="2" fill="var(--color-orb)" />
+          <rect x="22" y="-1" width="20" height="1" fill="var(--color-orb)" />
           <rect x="23" y="-2" width="18" height="1" fill="#ffd54a" />
-          <rect x="24" y="-3" width="16" height="1" fill="#6b3fd4" />
-          <rect x="25" y="-4" width="13" height="1" fill="#6b3fd4" />
-          <rect x="27" y="-5" width="10" height="1" fill="#6b3fd4" />
-          <rect x="28" y="-6" width="7" height="1" fill="#6b3fd4" />
-          <rect x="30" y="-7" width="5" height="1" fill="#6b3fd4" />
-          <rect x="33" y="-8" width="3" height="1" fill="#4b2399" />
-          <rect x="29" y="-5" width="2" height="1" fill="#fff6a8" />
-          <rect x="34" y="-3" width="1" height="1" fill="#fff6a8" />
+          <rect x="24" y="-3" width="16" height="1" fill="var(--color-orb)" />
+          <rect x="25" y="-4" width="13" height="1" fill="var(--color-orb)" />
+          <rect x="27" y="-5" width="10" height="1" fill="var(--color-orb)" />
+          <rect x="28" y="-6" width="7" height="1" fill="var(--color-orb)" />
+          <rect x="30" y="-7" width="5" height="1" fill="var(--color-orb)" />
+          <rect x="33" y="-8" width="3" height="1" fill="var(--color-orb)" />
+          <rect x="29" y="-5" width="2" height="1" fill="var(--color-spark)" />
+          <rect x="34" y="-3" width="1" height="1" fill="var(--color-spark)" />
         </g>
         {mood !== 'idle' &&
           SPARKS.map(([x, y], i) => (
-            <g key={i} className="ball-spark" style={{ animationDelay: `${i * 0.3}s` }} fill="#fff6a8">
+            <g key={i} className="ball-spark" style={{ animationDelay: `${i * 0.3}s` }} fill="var(--color-spark)">
               <rect x={x} y={y + 1} width={3} height={1} />
               <rect x={x + 1} y={y} width={1} height={3} />
             </g>

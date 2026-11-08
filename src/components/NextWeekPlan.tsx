@@ -53,15 +53,15 @@ export function NextWeekPlan() {
                     <span>{it.healthDelta === 0 ? 'same health' : `${it.healthDelta > 0 ? '+' : '−'}${Math.abs(it.healthDelta)} health`}</span>
                     <span>{timeSavedText(it.minutes)}</span>
                   </span>
-                  <span className="block text-[13px] text-ink/70">{it.decision.title}</span>
+                  <span className="block text-[14px] text-muted">{it.decision.title}</span>
                 </span>
-                <PixelButton variant="white" className="!min-h-[40px] !px-3 !py-1 text-[13px]" data-fx="star" onClick={() => tryIt(it.decision.id)}>
+                <PixelButton variant="white" className="!min-h-[44px] !px-3 !py-1 text-[14px]" data-fx="star" onClick={() => tryIt(it.decision.id)}>
                   Try it
                 </PixelButton>
               </li>
             ))}
           </ul>
-          <p className="text-[13px] text-ink/60">Counted against your usual, for a week of each habit.</p>
+          <p className="text-[14px] text-muted">Counted against your usual, for a week of each habit.</p>
         </>
       )}
     </PixelCard>

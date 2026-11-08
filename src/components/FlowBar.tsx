@@ -30,7 +30,7 @@ export function FlowBar({
         Back
       </button>
       {habit && (
-        <p className="num border-4 border-ink bg-lime px-2 py-1 font-pixel text-[10px] uppercase">
+        <p className="num border-4 border-ink bg-lime px-2 py-1 font-pixel text-[12px] uppercase">
           Habit {habit.n} of {habit.of}
         </p>
       )}
@@ -39,8 +39,8 @@ export function FlowBar({
           <li
             key={s}
             aria-current={i === step ? 'step' : undefined}
-            className={`border-4 border-ink px-2 py-1 font-pixel text-[10px] uppercase ${
-              i === step ? 'bg-ink text-white' : i < step ? 'bg-lime' : 'bg-white text-ink/60'
+            className={`border-4 border-ink px-2 py-1 font-pixel text-[12px] uppercase ${
+              i === step ? 'bg-ink text-white' : i < step ? 'bg-lime' : 'bg-white text-muted'
             }`}
           >
             {i + 1}

@@ -103,14 +103,14 @@ export function Onboarding() {
               <p className="mt-3 text-[22px] leading-tight">
                 Would you pay <b className="num">{gbp(timeDuelPrice(timeB))}</b> to get {TIME_DUEL_MINUTES} minutes back?
               </p>
-              <p className="mt-2 text-ink/70">Say, taking the quicker way home when you're tired.</p>
+              <p className="mt-2 text-muted">Say, taking the quicker way home when you're tired.</p>
             </>
           ) : (
             <>
               <p className="mt-3 text-[22px] leading-tight">
                 Would you pay <b className="num">{gbp(healthDuelPrice(healthB))}</b> extra for a choice that is {HEALTH_DUEL_POINTS} points healthier?
               </p>
-              <p className="mt-2 text-ink/70">Say, cooking a proper meal instead of ordering a takeaway.</p>
+              <p className="mt-2 text-muted">Say, cooking a proper meal instead of ordering a takeaway.</p>
             </>
           )}
           <div className="mt-5 grid gap-3">

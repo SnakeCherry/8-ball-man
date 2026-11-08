@@ -71,7 +71,7 @@ export function Title({ children, className = '' }: { children: ReactNode; class
 export function Label({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <p className={className}>
-      <span className="inline-block bg-lime px-1.5 font-pixel text-[11px] uppercase leading-5">{children}</span>
+      <span className="inline-block bg-lime px-1.5 font-pixel text-[12px] uppercase leading-5">{children}</span>
     </p>
   )
 }

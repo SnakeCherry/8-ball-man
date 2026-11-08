@@ -63,7 +63,7 @@ export default function App() {
             aria-pressed={muted}
             aria-label={muted ? 'Sound off. Turn sound on' : 'Sound on. Turn sound off'}
             onClick={() => setMuted(!muted)}
-            className="ml-auto border-4 border-ink bg-white p-1"
+            className="ml-auto grid min-h-[44px] min-w-[44px] place-items-center border-4 border-ink bg-white p-1"
           >
             <PixelIcon name={muted ? 'mute' : 'volume'} size={3} />
           </button>
@@ -127,7 +127,7 @@ export default function App() {
                   onClick={() => go(t.id)}
                   aria-current={on ? 'page' : undefined}
                   data-fx={t.icon}
-                  className={`flex min-h-[60px] flex-col items-center justify-center gap-1 border-r-4 border-ink font-pixel text-[11px] uppercase last:border-r-0 ${
+                  className={`flex min-h-[60px] flex-col items-center justify-center gap-1 border-r-4 border-ink font-pixel text-[12px] uppercase last:border-r-0 ${
                     on ? 'bg-ink text-white' : 'bg-white hover:bg-mint'
                   }`}
                 >

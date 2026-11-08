@@ -70,7 +70,7 @@ export function Predict() {
         <h2 id="guess-q" className="mt-3 text-[22px] leading-snug lg:text-[30px]">
           How much does your usual <b>{usualOpt.name}</b> cost you a month?
         </h2>
-        <p className="mt-1 text-[15px] text-ink/70">About {d.timesPerMonth} times a month. Drag, then lock in before time runs out.</p>
+        <p className="mt-1 text-[15px] text-muted">About {d.timesPerMonth} times a month. Drag, then lock in before time runs out.</p>
       </div>
 
       <div className="space-y-3" role="timer" aria-label={`${Math.max(0, left)} seconds left`}>
@@ -112,7 +112,7 @@ export function Predict() {
             aria-label={`Monthly cost of your usual ${usualOpt.name}, in pounds`}
             onChange={(e) => setValue(Number(e.target.value))}
           />
-          <div className="num mt-1 flex justify-between text-[15px] text-ink/70">
+          <div className="num mt-1 flex justify-between text-[15px] text-muted">
             <span>{gbp(0)}</span>
             <span>{gbp(max)}</span>
           </div>

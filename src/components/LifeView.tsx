@@ -46,7 +46,7 @@ export function LifeView({ items }: { items: LifeItem[] }) {
     <PixelCard className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Label>Time vs life</Label>
-        <span className="border-4 border-ink bg-white px-1 font-pixel text-[9px] uppercase">Rough estimate</span>
+        <span className="border-4 border-ink bg-white px-1 font-pixel text-[12px] uppercase">Rough estimate</span>
       </div>
 
       {items.length === 0 || (Math.abs(weekly.timeMin) < 1 && Math.abs(weekly.lifeMin) < 1) ? (
@@ -59,18 +59,18 @@ export function LifeView({ items }: { items: LifeItem[] }) {
         <>
           <div className="grid grid-cols-2 gap-3">
             <div className="border-4 border-ink p-3" style={{ background: '#e4f1ff' }}>
-              <p className="flex items-center gap-2 font-pixel text-[9px] uppercase">
+              <p className="flex items-center gap-2 font-pixel text-[12px] uppercase">
                 <PixelIcon name="clock" size={2} color={TIME} /> Free time
               </p>
               <p className="num mt-2 text-[30px] font-semibold leading-none">{signedSpan(lastTime)}</p>
-              <p className="mt-1 text-[13px]">{lastTime >= 0 ? 'banked' : 'given up'}</p>
+              <p className="mt-1 text-[14px]">{lastTime >= 0 ? 'banked' : 'given up'}</p>
             </div>
             <div className="border-4 border-ink p-3" style={{ background: '#ffe6e6' }}>
-              <p className="flex items-center gap-2 font-pixel text-[9px] uppercase">
+              <p className="flex items-center gap-2 font-pixel text-[12px] uppercase">
                 <PixelIcon name="heart" size={2} color={LIFE} /> Life
               </p>
               <p className="num mt-2 text-[30px] font-semibold leading-none">{signedSpan(lastLife)}</p>
-              <p className="mt-1 text-[13px]">{lastLife >= 0 ? 'could be gained' : 'could be lost'}</p>
+              <p className="mt-1 text-[14px]">{lastLife >= 0 ? 'could be gained' : 'could be lost'}</p>
             </div>
           </div>
 
@@ -111,14 +111,14 @@ export function LifeView({ items }: { items: LifeItem[] }) {
         </label>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Quick years">
           {CHIPS.map((c) => (
-            <PixelButton key={c} variant={years === c ? 'lime' : 'white'} className="!min-h-[36px] !px-3 !py-1 text-[13px]" aria-pressed={years === c} onClick={() => setYears(c)}>
+            <PixelButton key={c} variant={years === c ? 'lime' : 'white'} className="!min-h-[44px] !px-3 !py-1 text-[14px]" aria-pressed={years === c} onClick={() => setYears(c)}>
               {c} {c === 1 ? 'year' : 'years'}
             </PixelButton>
           ))}
         </div>
       </div>
 
-      <p className="text-[13px] leading-snug text-ink/70">
+      <p className="text-[14px] leading-snug text-muted">
         A rough, illustrative estimate, not medical advice. It assumes one of our 1 to 10 health points is worth about 30 minutes of life each time,
         based on the idea that average effects on a whole population can be counted in minutes. Our health scores are our own judgement.
       </p>

@@ -11,7 +11,7 @@ export function SavingBig({ delta, once, keep = false, className = '' }: { delta
   if (Math.abs(delta) < 0.5) return <p className={`text-[28px] font-semibold leading-tight ${className}`}>About the same price</p>
   const saves = delta > 0
   return (
-    <p className={`num leading-none ${className}`} aria-label={`${saves ? 'Save' : 'Costs'} about ${gbp(Math.abs(delta))}${unit}${saves ? '' : ' more'}`}>
+    <p className={`num relative leading-none ${className}`} aria-label={`${saves ? 'Save' : 'Costs'} about ${gbp(Math.abs(delta))}${unit}${saves ? '' : ' more'}`}>
       <span className="block text-[18px] font-normal">{saves ? 'Save about' : 'Costs about'}</span>
       <span className="text-[clamp(44px,6vw,68px)] font-semibold">
         <CountUp value={Math.abs(delta)} format={gbp} delayMs={200} />
@@ -20,6 +20,12 @@ export function SavingBig({ delta, once, keep = false, className = '' }: { delta
         {unit.trim()}
         {saves ? '' : ' more'}
       </span>
+      {saves && (
+        <>
+          <i className="twinkle" style={{ right: 4, top: 0 }} aria-hidden="true" />
+          <i className="twinkle" style={{ right: 28, top: 26, animationDelay: '0.4s' }} aria-hidden="true" />
+        </>
+      )}
     </p>
   )
 }

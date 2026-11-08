@@ -2,7 +2,7 @@
  * Tiny chiptune blips made with WebAudio: no audio files. The context is created lazily on the
  * first sound (which always follows a tap, so autoplay rules are met). Mute is remembered.
  */
-export type SoundName = 'click' | 'tick' | 'urgent' | 'lock' | 'bullseye' | 'miss' | 'badge' | 'nudge' | 'magic'
+export type SoundName = 'click' | 'tick' | 'urgent' | 'lock' | 'bullseye' | 'miss' | 'badge' | 'nudge' | 'magic' | 'sparkle'
 
 interface Note {
   /** frequency in Hz; 0 is a rest */
@@ -21,6 +21,7 @@ const WAVE: Record<SoundName, OscillatorType> = {
   badge: 'square',
   nudge: 'triangle',
   magic: 'triangle',
+  sparkle: 'triangle',
 }
 
 const NOTES: Record<SoundName, Note[]> = {
@@ -32,11 +33,9 @@ const NOTES: Record<SoundName, Note[]> = {
   miss: [{ f: 330, d: 0.12 }, { f: 262, d: 0.12 }, { f: 196, d: 0.22 }],
   badge: [{ f: 784, d: 0.08 }, { f: 988, d: 0.08 }, { f: 1175, d: 0.08 }, { f: 1568, d: 0.22 }],
   nudge: [{ f: 440, d: 0.03 }],
+  sparkle: [{ f: 1568, d: 0.05 }, { f: 1976, d: 0.05 }, { f: 2349, d: 0.05 }, { f: 2637, d: 0.05 }, { f: 3136, d: 0.06 }, { f: 3951, d: 0.07 }, { f: 3136, d: 0.05 }, { f: 3951, d: 0.05 }, { f: 4699, d: 0.2 }],
   magic: [{ f: 659, d: 0.07 }, { f: 880, d: 0.07 }, { f: 1319, d: 0.07 }, { f: 1760, d: 0.07 }, { f: 2093, d: 0.25 }],
 }
-
-const reducedMotion = (): boolean =>
-  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 const KEY = 'trade-off-muted'
 let ctx: AudioContext | null = null
@@ -71,7 +70,8 @@ export function subscribeMuted(cb: () => void): () => void {
 }
 
 export function play(name: SoundName): void {
-  if (muted || reducedMotion() || typeof window === 'undefined') return
+  // reduced motion calms the animation; it does not mute sound (the mute button does that)
+  if (muted || typeof window === 'undefined') return
   try {
     const AC = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (!AC) return

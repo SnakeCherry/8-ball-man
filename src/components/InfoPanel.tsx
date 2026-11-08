@@ -33,7 +33,7 @@ export function InfoPanel({ decision, focusId }: { decision: Decision; focusId?:
     <PixelCard className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <Label>Useful info</Label>
-        {loading && <span className="anim-blink font-pixel text-[9px] uppercase">Looking it up…</span>}
+        {loading && <span className="anim-blink font-pixel text-[12px] uppercase">Looking it up…</span>}
       </div>
       {(() => {
         const row = (o: Decision['options'][number], big: boolean) => {
@@ -44,7 +44,7 @@ export function InfoPanel({ decision, focusId }: { decision: Decision; focusId?:
               <p className={`flex flex-wrap items-center gap-2 leading-tight ${big ? 'text-[22px]' : 'text-[18px]'}`}>
                 <PixelArt name={o.icon} size={2} />
                 <b>{o.name}</b>
-                <span className="border-4 border-ink bg-white px-1 font-pixel text-[9px] uppercase">{info.label}</span>
+                <span className="border-4 border-ink bg-white px-1 font-pixel text-[12px] uppercase">{info.label}</span>
               </p>
               {info.tip && <p className="text-[16px] leading-snug">{info.tip}</p>}
               {links.length > 0 && (
@@ -74,14 +74,14 @@ export function InfoPanel({ decision, focusId }: { decision: Decision; focusId?:
         return (
           <>
             <ul>{row(focus, true)}</ul>
-            <button type="button" aria-expanded={others} onClick={() => setOthers((v) => !v)} className="font-pixel text-[11px] uppercase underline">
+            <button type="button" aria-expanded={others} onClick={() => setOthers((v) => !v)} className="font-pixel text-[12px] uppercase underline">
               {others ? 'Hide other options' : `Other options (${rest.length})`}
             </button>
             {others && <ul className="space-y-4">{rest.map((o) => row(o, false))}</ul>}
           </>
         )
       })()}
-      <p className="text-[13px] text-ink/60">Links open in a new tab. Prices and times can change, so check before you go.</p>
+      <p className="text-[14px] text-muted">Links open in a new tab. Prices and times can change, so check before you go.</p>
     </PixelCard>
   )
 }

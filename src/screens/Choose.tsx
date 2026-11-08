@@ -53,7 +53,7 @@ export function Choose() {
         <Title className="mb-1">
           <span id="step-priority">What matters most to you this week?</span>
         </Title>
-        <p className="mb-4 text-[15px] text-ink/70">Everything starts in the middle. Slide what matters more or less to you and the options re-rank.</p>
+        <p className="mb-4 text-[15px] text-muted">Everything starts in the middle. Slide what matters more or less to you and the options re-rank.</p>
         <PriorityMixer
           key={d.id}
           options={d.options}
@@ -93,7 +93,7 @@ export function Choose() {
                     type="button"
                     aria-pressed={usualId === o.id}
                     onClick={() => setUsual(d.id, o.id)}
-                    className="pbox-flat pselect px-1 py-2 text-center text-[13px] leading-tight"
+                    className="pbox-flat pselect px-1 py-2 text-center text-[14px] leading-tight"
                   >
                     {o.name}
                   </button>

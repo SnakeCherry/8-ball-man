@@ -50,18 +50,18 @@ export function Home() {
       {history.length > 0 && (
         <ul className="num grid grid-cols-3 gap-3 text-center" aria-label="Your week so far">
           <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(totalsNow.savedGBP)}`}>
-            <span className="block text-[13px] text-ink/70">Money this week</span>
+            <span className="block text-[14px] text-muted">Money this week</span>
             <span className="block text-[22px] font-semibold">
               {totalsNow.savedGBP >= 0 ? '+' : '−'}
               {gbp(totalsNow.savedGBP)}
             </span>
           </li>
           <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(totalsNow.minutes)}`}>
-            <span className="block text-[13px] text-ink/70">Time {totalsNow.minutes >= 0 ? 'saved' : 'extra'}</span>
+            <span className="block text-[14px] text-muted">Time {totalsNow.minutes >= 0 ? 'saved' : 'extra'}</span>
             <span className="block text-[22px] font-semibold">{mins(totalsNow.minutes)}</span>
           </li>
           <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(lifeYear)}`} title="A rough, illustrative estimate if you keep your choices up for a year. Not medical advice.">
-            <span className="block text-[13px] text-ink/70">Life {lifeYear >= 0 ? 'added' : 'lost'} a year</span>
+            <span className="block text-[14px] text-muted">Life {lifeYear >= 0 ? 'added' : 'lost'} a year</span>
             <span className="block text-[22px] font-semibold">{signedSpan(lifeYear)}</span>
           </li>
         </ul>
@@ -76,7 +76,7 @@ export function Home() {
           type="button"
           aria-expanded={showMore}
           onClick={() => setShowMore((v) => !v)}
-          className="inline-flex min-h-[44px] items-center gap-2 font-pixel text-[11px] uppercase underline"
+          className="inline-flex min-h-[44px] items-center gap-2 font-pixel text-[12px] uppercase underline"
         >
           {showMore ? 'Hide more' : 'More: sources and data'}
         </button>

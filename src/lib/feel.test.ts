@@ -377,3 +377,12 @@ describe('several habits in one sentence', () => {
     expect(parseEstimate(two).activity).toBe('Going on walks')
   })
 })
+
+describe('sound', () => {
+  it('has a sparkle for good news and plays whatever the motion setting', async () => {
+    const { play } = await import('./sound')
+    // no AudioContext in node: it must simply do nothing, never throw
+    expect(() => play('sparkle')).not.toThrow()
+    expect(() => play('magic')).not.toThrow()
+  })
+})

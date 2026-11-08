@@ -98,7 +98,7 @@ export function PriorityMixer({
                       <PixelIcon name={AXIS_ICON[a]} size={2} color="#0a0a0a" />
                     </span>
                     {AXIS_NAME[a]}
-                    <span className="font-pixel text-[11px] uppercase">{at >= 0 ? PLACE[at] : 'Tap'}</span>
+                    <span className="font-pixel text-[12px] uppercase">{at >= 0 ? PLACE[at] : 'Tap'}</span>
                   </button>
                 )
               })}
@@ -125,19 +125,19 @@ export function PriorityMixer({
               aria-valuetext={`${AXIS_NAME[a]}: ${word(mix[a])}`}
               onChange={(e) => set(a, Number(e.target.value))}
             />
-            <span className="col-span-2 text-[14px] text-ink/70 sm:col-span-1 sm:text-right">{word(mix[a])}</span>
+            <span className="col-span-2 text-[14px] text-muted sm:col-span-1 sm:text-right">{word(mix[a])}</span>
           </label>
         ))}
           </>
         )}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="num text-[14px] text-ink/70" aria-live="off">
+          <p className="num text-[14px] text-muted" aria-live="off">
             {weightsText(live)}
           </p>
           <div className="flex gap-2">
             <button
               type="button"
-              className="pbtn pbtn-white !min-h-[36px] !px-3 !py-1 text-[13px]"
+              className="pbtn pbtn-white !min-h-[44px] !px-3 !py-1 text-[14px]"
               onClick={() => {
                 setEasy((v) => !v)
                 setOrder([])
@@ -147,7 +147,7 @@ export function PriorityMixer({
             </button>
             <button
               type="button"
-              className="pbtn pbtn-white !min-h-[36px] !px-3 !py-1 text-[13px]"
+              className="pbtn pbtn-white !min-h-[44px] !px-3 !py-1 text-[14px]"
               onClick={() => {
                 setMix(EVEN_MIX)
                 setOrder([])
@@ -201,14 +201,14 @@ export function PriorityMixer({
                         <PixelArt name={o.icon} size={2} />
                         <span className="truncate">{o.name}</span>
                       </span>
-                      {i === 0 && <span className="shrink-0 border-4 border-ink bg-white px-1 font-pixel text-[9px] uppercase">Best fit</span>}
+                      {i === 0 && <span className="shrink-0 border-4 border-ink bg-white px-1 font-pixel text-[12px] uppercase">Best fit</span>}
                     </span>
                     <span className="mt-1 flex h-5 border-4 border-ink bg-white" aria-hidden="true">
                       {AXES.map((a) => (
                         <span key={a} className="block h-full" style={{ width: `${(c.parts[a] / bestFit) * 100}%`, background: AXIS_COLOR[a], transition: 'width 0.3s steps(6)' }} />
                       ))}
                     </span>
-                    <span className="num mt-1 flex items-center gap-3 text-[13px]">
+                    <span className="num mt-1 flex items-center gap-3 text-[14px]">
                       <span>{gbp(o.costGBP)}</span>
                       <span>{mins(o.timeMin)}</span>
                       <span className="flex items-center gap-1">

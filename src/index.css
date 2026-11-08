@@ -21,6 +21,10 @@
   --color-forest: #006a4d;
   --color-ink: #0a0a0a;
   --color-red: #ff6b6b;
+  --color-muted: #3b4a42;
+  --color-orb: #6b3fd4;
+  --color-night: #0d0626;
+  --color-spark: #fff6a8;
   --font-pixel: 'Press Start 2P', ui-monospace, monospace;
   --font-body: 'Digits', 'Pixelify Sans', ui-monospace, monospace;
 }
@@ -612,7 +616,7 @@ body {
 .ball-listening .ball-win,
 .ball-thinking .ball-win,
 .ball-text .ball-win {
-  fill: #0d0626;
+  fill: var(--color-night);
 }
 .chant-lit {
   color: #6b3fd4;
@@ -718,4 +722,27 @@ body {
     opacity: 0;
     transform: translate(60vw, 18vh);
   }
+}
+
+/* a pair of pixel stars that pop beside good news */
+.twinkle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #ffd54a;
+  clip-path: polygon(40% 0, 60% 0, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0 60%, 0 40%, 40% 40%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .twinkle {
+    animation: pblink 0.9s steps(1) infinite;
+  }
+}
+
+/* every interactive thing gets a visible focus ring (the pixel buttons already had their own) */
+:focus-visible {
+  outline: 4px solid var(--color-forest);
+  outline-offset: 2px;
+}
+.night :focus-visible {
+  outline-color: var(--color-spark);
 }

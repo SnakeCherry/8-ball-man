@@ -8,6 +8,7 @@ import { VERDICT_LINE } from '../data/copy'
 import { getDecision } from '../data/decisions'
 import { burstAtElement } from '../lib/fx'
 import { gbp, timeSavedText } from '../lib/format'
+import { play } from '../lib/sound'
 import { useAppStore } from '../store/useAppStore'
 import type { LastResult } from '../store/useAppStore'
 
@@ -30,7 +31,10 @@ export function Result() {
 
   useEffect(() => {
     if (total <= 0) return
-    const t = window.setTimeout(() => burstAtElement(ref.current, { icon: 'pound', count: 10, spread: 84 }), 450)
+    const t = window.setTimeout(() => {
+      play('sparkle')
+      burstAtElement(ref.current, { icon: 'pound', count: 10, spread: 84 })
+    }, 450)
     return () => window.clearTimeout(t)
   }, [total])
 
@@ -73,14 +77,14 @@ export function Result() {
                   <PixelArt name={chosen.icon} size={5} animate />
                 </div>
                 <div>
-                  <p className="font-pixel text-[10px] uppercase text-ink/70">{d.title}</p>
+                  <p className="font-pixel text-[12px] uppercase text-muted">{d.title}</p>
                   <p className="text-[24px] leading-tight">{chosen.name}</p>
                   <p className="num mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[16px]">
                     <b>{money(r.deltaGBP)}</b>
                     <span>{timeSavedText(r.minutes)}</span>
                     <span>{health(r.healthDelta)}</span>
                   </p>
-                  <p className="mt-1 text-[14px] text-ink/70">Counted {r.basis}.</p>
+                  <p className="mt-1 text-[14px] text-muted">Counted {r.basis}.</p>
                   {r.purchase && <p className="mt-2 text-[15px] leading-snug">{VERDICT_LINE[r.purchase.verdict](gbp(r.purchase.perHour), gbp(timeRate))}</p>}
                 </div>
               </PixelCard>

@@ -30,7 +30,7 @@ export function Podium({ options, axis, delay = 0, oneOff = false }: { options: 
   ]
   return (
     <section aria-label={`${title.title}: ${title.sub}`}>
-      <p className="mb-2 flex items-center gap-2 font-pixel text-[11px] uppercase">
+      <p className="mb-2 flex items-center gap-2 font-pixel text-[12px] uppercase">
         <PixelIcon name={AXIS_ICON[axis]} size={3} />
         {title.title}: {title.sub}
       </p>
@@ -45,12 +45,12 @@ export function Podium({ options, axis, delay = 0, oneOff = false }: { options: 
               style={{ height: HEIGHT[rank], animationDelay: `${delay + at}s`, background: MEDAL[rank].fill, boxShadow: SHADE }}
             >
               <span className="sr-only">{MEDAL[rank].name}</span>
-              <span className="font-pixel text-[10px]">{rank}</span>
+              <span className="font-pixel text-[12px]">{rank}</span>
               <span className="num text-[20px] font-semibold leading-none">
                 <CountUp value={axisShown(o, axis)} format={axisFormat[axis]} delayMs={(delay + at) * 1000 + 250} />
               </span>
             </div>
-            <span className="mt-1 text-[13px] leading-tight">{o.name}</span>
+            <span className="mt-1 text-[14px] leading-tight">{o.name}</span>
           </li>
         ))}
       </ol>

@@ -14,7 +14,7 @@ export function IconGallery() {
               {frameCount(n) > 1 && <PixelArt name={n} size={5} frame={1} />}
             </div>
             <PixelArt name={n} size={2} animate />
-            <span className="font-pixel text-[9px] uppercase">{n}</span>
+            <span className="font-pixel text-[12px] uppercase">{n}</span>
           </li>
         ))}
       </ul>
