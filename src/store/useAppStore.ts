@@ -6,6 +6,7 @@ import { timePurchase } from '../lib/explain'
 import type { TimePurchase } from '../lib/explain'
 import { DEFAULT_HEALTH_RATE, DEFAULT_TIME_RATE } from '../lib/exchangeRates'
 import { CLOSE, closeness, guessError, monthlyCost } from '../lib/guess'
+import { creditBasis, creditFor, isOneOff } from '../lib/habit'
 import { EMPTY_GUT, addGuess, nextStreak } from '../lib/gut'
 import type { GutTally } from '../lib/gut'
 import { applySaving, goalEffect, isoInDays } from '../lib/goal'
@@ -24,6 +25,8 @@ export interface LastResult {
   optionId: string
   deltaGBP: number
   days: number
+  /** how the saving was counted: "over a week of Walk" or "once" */
+  basis: string
   purchase: TimePurchase | null
   newBadges: string[]
 }
@@ -63,8 +66,12 @@ interface Actions {
   startDecision: (id: string) => void
   /** begin from a decision made from speech: no guess round, straight to the results */
   startCustom: (d: Decision) => void
+  /** keep decisions made from speech (several can come from one sentence) so they wait on the belt */
+  addCustoms: (ds: Decision[]) => void
   setGuess: (n: number) => void
   setPriority: (p: Priority) => void
+  /** change what you are saving for; what you have saved so far carries over */
+  setGoal: (g: Goal) => void
   setWeights: (w: Weights) => void
   setMoneyLeft: (n: number) => void
   setUsual: (decisionId: string, optionId: string) => void
@@ -145,6 +152,11 @@ export const useAppStore = create<AppState>()(
           screen: 'predict',
         })),
 
+      addCustoms: (ds) => {
+        ds.forEach(registerDecision)
+        set((s) => ({ customDecisions: [...s.customDecisions.filter((x) => !ds.some((d) => d.id === x.id)), ...ds].slice(-12) }))
+      },
+
       startCustom: (d) => {
         registerDecision(d)
         set((s) => ({
@@ -161,6 +173,7 @@ export const useAppStore = create<AppState>()(
 
       setGuess: (guess) => set({ guess }),
       setPriority: (priority) => set({ priority, weights: null }),
+      setGoal: (goal) => set({ goal: { ...goal, saved: Math.min(goal.saved, goal.target) } }),
       setWeights: (weights) => set({ weights, priority: nearestPriority(weights) }),
       setMoneyLeft: (moneyLeft) => set({ moneyLeft }),
       setUsual: (decisionId, optionId) => set((s) => ({ usual: { ...s.usual, [decisionId]: optionId } })),
@@ -176,8 +189,10 @@ export const useAppStore = create<AppState>()(
         const usual = d.options.find((o) => o.id === (s.usual[d.id] ?? d.usualId))
         if (!chosen || !usual) return
 
-        const delta = usual.costGBP - chosen.costGBP
-        const purchase = timePurchase(chosen, usual, s.timeRate)
+        // a habit counts a week of itself towards the goal; a one-off counts the whole difference once
+        const delta = Math.round(creditFor(d, usual.costGBP - chosen.costGBP) * 100) / 100
+        const minutes = Math.round(creditFor(d, usual.timeMin - chosen.timeMin))
+        const purchase = isOneOff(d) ? null : timePurchase(chosen, usual, s.timeRate)
         const effect = s.goal ? goalEffect(s.goal, delta) : { deltaGBP: delta, days: 0 }
 
         // how close the monthly-cost guess was, for the streak and the Gut Score
@@ -192,7 +207,7 @@ export const useAppStore = create<AppState>()(
           priority: s.priority,
           guessErr: err,
           savedGBP: delta,
-          minutesSaved: usual.timeMin - chosen.timeMin,
+          minutesSaved: minutes,
           verdict: purchase?.verdict ?? null,
           at: Date.now(),
         }
@@ -216,6 +231,7 @@ export const useAppStore = create<AppState>()(
             optionId,
             deltaGBP: delta,
             days: effect.days,
+            basis: creditBasis(d, chosen.name),
             purchase,
             newBadges,
           },

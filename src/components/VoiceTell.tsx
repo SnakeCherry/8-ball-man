@@ -3,10 +3,12 @@ import type { FormEvent } from 'react'
 import { PixelButton, PixelCard, PixelIcon, Label } from './ui'
 import { PixelArt } from './PixelArt'
 import { Equaliser, Typed } from './VoiceBits'
-import { estimateDecision, llmAvailable, matchPreset, warmUpLlm } from '../lib/estimate'
+import { estimateDecisions, llmAvailable, matchPreset, warmUpLlm } from '../lib/estimate'
 import type { ParsedEstimate } from '../lib/estimate'
+import type { IconName } from '../lib/pixelart'
 import { gbp, mins, score } from '../lib/format'
 import { monthlyCost } from '../lib/guess'
+import { isOneOff } from '../lib/habit'
 import { bestSwitch } from '../lib/hook'
 import { play } from '../lib/sound'
 import { useSpeechInput } from '../lib/useSpeechInput'
@@ -15,16 +17,71 @@ import { useAppStore } from '../store/useAppStore'
 
 type Stage = 'idle' | 'pricing' | 'ready' | 'fallback' | 'error'
 
+interface PanelOption {
+  name: string
+  icon: IconName
+  costGBP: number
+  timeMin: number
+  health: number
+}
+
+/** One habit: its title, its (up to three) options, and whatever goes underneath. Missing options show as placeholders. */
+function PlanPanel({
+  title,
+  icon,
+  options,
+  usualId,
+  footer,
+}: {
+  title: string | null
+  icon?: IconName
+  options: (PanelOption & { id?: string })[]
+  usualId?: string
+  footer?: React.ReactNode
+}) {
+  return (
+    <div className="space-y-3 border-4 border-ink bg-white p-3">
+      <p className="flex items-center gap-2 text-[19px] leading-tight">
+        {icon ? <PixelArt name={icon} size={2} /> : <PixelArt name="coin" size={2} className="anim-blink" />}
+        <b>{title ?? '…'}</b>
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        {[0, 1, 2].map((i) => {
+          const o = options[i]
+          const usual = o ? (usualId ? o.id === usualId : i === 0) : false
+          return o ? (
+            <div key={i} className={`anim-pop border-4 border-ink p-3 ${usual ? 'bg-lime' : 'bg-white'}`}>
+              <p className="text-[17px] leading-tight">
+                <PixelArt name={o.icon} size={2} /> {o.name}
+              </p>
+              <p className="num mt-1 text-[15px]">
+                {gbp(o.costGBP)} · {mins(o.timeMin)} · <PixelArt name="heart" size={1} /> {score(o.health)}
+              </p>
+              {usual && <p className="mt-1 font-pixel text-[9px] uppercase">Your usual</p>}
+            </div>
+          ) : (
+            <div key={i} className="anim-blink flex h-[72px] items-center justify-center border-4 border-dashed border-ink/40" aria-hidden="true">
+              <PixelArt name={(['coin', 'dumbbell', 'heart'] as const)[i]} size={3} />
+            </div>
+          )
+        })}
+      </div>
+      {footer}
+    </div>
+  )
+}
+
 /** The Home hero: say what you do, and Qwen prices it and finds a cheaper way. */
 export function VoiceTell() {
   const startCustom = useAppStore((s) => s.startCustom)
+  const addCustoms = useAppStore((s) => s.addCustoms)
   const startDecision = useAppStore((s) => s.startDecision)
   const [said, setSaid] = useState('')
   const [typed, setTyped] = useState('')
   const [stage, setStage] = useState<Stage>('idle')
-  const [plan, setPlan] = useState<Decision | null>(null)
+  const [plans, setPlans] = useState<Decision[]>([])
   const [preset, setPreset] = useState<Decision | null>(null)
-  const [partial, setPartial] = useState<ParsedEstimate | null>(null)
+  const [partial, setPartial] = useState<ParsedEstimate[]>([])
 
   // read the instructions into Qwen's cache now so the first real question starts faster
   useEffect(() => {
@@ -34,11 +91,13 @@ export function VoiceTell() {
   const price = async (text: string) => {
     setSaid(text)
     setStage('pricing')
-    setPlan(null)
+    setPlans([])
     setPreset(null)
-    setPartial(null)
+    setPartial([])
     try {
-      setPlan(await estimateDecision(text, setPartial))
+      const found = await estimateDecisions(text, setPartial)
+      addCustoms(found) // every habit found waits on the belt, even the ones you don't start right now
+      setPlans(found)
       setStage('ready')
       play('bullseye')
     } catch {
@@ -62,8 +121,6 @@ export function VoiceTell() {
       setTyped('')
     }
   }
-
-  const sw = plan ? bestSwitch(plan) : null
 
   return (
     <PixelCard className="space-y-4 bg-white">
@@ -132,59 +189,53 @@ export function VoiceTell() {
 
       {stage === 'pricing' && (
         <div className="space-y-3" role="status" aria-label="Pricing it">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {[0, 1, 2].map((i) => {
-              const o = partial?.options[i]
-              return o ? (
-                <div key={i} className={`anim-pop border-4 border-ink p-3 ${i === 0 ? 'bg-lime' : 'bg-white'}`}>
-                  <p className="text-[18px] leading-tight">
-                    <PixelArt name={o.icon} size={2} /> {o.name}
-                  </p>
-                  <p className="num mt-1 text-[16px]">
-                    {gbp(o.costGBP)} · {mins(o.timeMin)} · <PixelArt name="heart" size={1} /> {score(o.health)}
-                  </p>
-                  {i === 0 && <p className="mt-1 font-pixel text-[9px] uppercase">Your usual</p>}
-                </div>
-              ) : (
-                <div key={i} className="anim-blink flex h-[76px] items-center justify-center border-4 border-dashed border-ink/40 text-[26px]" aria-hidden="true">
-                  <PixelArt name={(['coin', 'dumbbell', 'heart'] as const)[i]} size={3} />
-                </div>
-              )
-            })}
+          <div className={`grid gap-4 ${partial.length > 1 ? 'lg:grid-cols-2' : ''}`}>
+            {(partial.length ? partial : [{ timesPerMonth: null, activity: null, options: [] }]).map((g, gi) => (
+              <PlanPanel key={gi} title={g.activity} icon={g.options[0]?.icon} options={g.options} />
+            ))}
           </div>
           <p className="font-pixel text-[11px] uppercase">Pricing it…</p>
         </div>
       )}
 
-      {stage === 'ready' && plan && (
+      {stage === 'ready' && plans.length > 0 && (
         <div className="anim-pop space-y-3">
-          <div className="grid gap-3 sm:grid-cols-3">
-            {plan.options.map((o) => (
-              <div key={o.id} className={`border-4 border-ink p-3 ${o.id === plan.usualId ? 'bg-lime' : 'bg-white'}`}>
-                <p className="text-[18px] leading-tight">
-                  <PixelArt name={o.icon} size={2} /> {o.name}
-                </p>
-                <p className="num mt-1 text-[16px]">
-                  {gbp(o.costGBP)} · {mins(o.timeMin)} · <PixelArt name="heart" size={1} /> {score(o.health)}
-                </p>
-                {o.id === plan.usualId && <p className="mt-1 font-pixel text-[9px] uppercase">Your usual</p>}
-              </div>
-            ))}
+          {plans.length > 1 && (
+            <p className="text-[17px]">
+              I found <b>{plans.length} things</b> in that. Start with any one; the rest wait on the belt below.
+            </p>
+          )}
+          <div className={`grid gap-4 ${plans.length > 1 ? 'lg:grid-cols-2' : ''}`}>
+            {plans.map((plan) => {
+              const sw = bestSwitch(plan)
+              return (
+                <PlanPanel
+                  key={plan.id}
+                  title={plan.title}
+                  icon={plan.icon}
+                  options={plan.options}
+                  usualId={plan.usualId}
+                  footer={
+                    <>
+                      <p className="text-[20px] leading-snug">
+                        ≈ <b>{gbp(monthlyCost(plan.options.find((o) => o.id === plan.usualId)!, plan))}</b>
+                        {isOneOff(plan) ? ' once' : ' a month'}
+                        {sw && (
+                          <>
+                            . {sw.option.name} would save about <b>{gbp(sw.monthlyGBP)}</b>.
+                          </>
+                        )}
+                      </p>
+                      <PixelButton data-fx="star" onClick={() => startCustom(plan)}>
+                        See the trade-offs
+                      </PixelButton>
+                    </>
+                  }
+                />
+              )
+            })}
           </div>
-          <p className="text-[22px] leading-snug">
-            ≈ <b>{gbp(monthlyCost(plan.options.find((o) => o.id === plan.usualId)!, plan))}</b> a month
-            {sw && (
-              <>
-                . {sw.option.name} would save about <b>{gbp(sw.monthlyGBP)}</b>.
-              </>
-            )}
-          </p>
-          <div className="flex flex-wrap items-center gap-3">
-            <PixelButton data-fx="star" onClick={() => startCustom(plan)}>
-              See the trade-offs
-            </PixelButton>
-            <span className="text-[14px] text-ink/70">Estimates from Qwen. Real prices vary.</span>
-          </div>
+          <p className="text-[14px] text-ink/70">Estimates from Qwen. Real prices vary.</p>
         </div>
       )}
 

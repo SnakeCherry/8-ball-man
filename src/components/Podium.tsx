@@ -7,7 +7,8 @@ import { PODIUM_TITLE } from '../data/copy'
 import { axisShown, podiumOrder } from '../lib/scoring'
 import type { Axis, Option } from '../lib/types'
 
-const HEIGHT = { 1: 96, 2: 72, 3: 56 } as const
+/** Step heights grow with the window height (in dvh) so the podiums fill a tall screen. */
+const HEIGHT = { 1: 'clamp(96px, 11dvh, 150px)', 2: 'clamp(72px, 8.25dvh, 112px)', 3: 'clamp(56px, 6.4dvh, 86px)' } as const
 
 /** Olympic colours: gold, silver, bronze, each with a lighter top band and a darker bottom band for a pixel-metal look. */
 const MEDAL = {
@@ -18,7 +19,9 @@ const MEDAL = {
 const SHADE = 'inset 0 6px 0 rgba(255,255,255,0.38), inset 0 -8px 0 rgba(0,0,0,0.16)'
 
 /** A three-step podium for one axis: 2nd on the left, 1st in the middle, 3rd on the right. */
-export function Podium({ options, axis, delay = 0 }: { options: Option[]; axis: Axis; delay?: number }) {
+export function Podium({ options, axis, delay = 0, oneOff = false }: { options: Option[]; axis: Axis; delay?: number; oneOff?: boolean }) {
+  // for a one-off buy the time axis is how long until you have it
+  const title = oneOff && axis === 'time' ? { title: 'Soonest', sub: 'how soon' } : PODIUM_TITLE[axis]
   const [first, second, third] = podiumOrder(options, axis)
   const cols = [
     { o: second, rank: 2 as const, at: 0.3 },
@@ -26,10 +29,10 @@ export function Podium({ options, axis, delay = 0 }: { options: Option[]; axis: 
     { o: third, rank: 3 as const, at: 0 },
   ]
   return (
-    <section aria-label={`${PODIUM_TITLE[axis].title}: ${PODIUM_TITLE[axis].sub}`}>
+    <section aria-label={`${title.title}: ${title.sub}`}>
       <p className="mb-2 flex items-center gap-2 font-pixel text-[11px] uppercase">
         <PixelIcon name={AXIS_ICON[axis]} size={3} />
-        {PODIUM_TITLE[axis].title}: {PODIUM_TITLE[axis].sub}
+        {title.title}: {title.sub}
       </p>
       <ol className="grid grid-cols-3 items-end gap-2">
         {cols.map(({ o, rank, at }) => (

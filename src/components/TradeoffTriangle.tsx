@@ -98,7 +98,8 @@ export function TradeoffTriangle({
     <svg
       ref={svgRef}
       viewBox={`0 0 ${TRI_W} ${TRI_H}`}
-      className="mx-auto block w-full max-w-[460px] touch-none select-none"
+      className="mx-auto block w-full touch-none select-none"
+      style={{ maxWidth: 'min(100%, max(430px, 50dvh))' }}
       role="group"
       aria-label="Trade-off triangle: drag the handle towards what matters most"
       onPointerDown={(e) => {

@@ -5,6 +5,7 @@ import { AXIS_ICON } from './parts'
 import { reducedMotion } from '../lib/fx'
 import { gbp, mins, score } from '../lib/format'
 import { play } from '../lib/sound'
+import { artBox, naturalSize } from '../lib/pixelart'
 import type { IconName } from '../lib/pixelart'
 import { OPTION_COLORS } from '../lib/triangle'
 import { TRIP_TICK_MS, maxMinutes, medals, minutesPerTick, heartChance, tripProgress } from '../lib/trip'
@@ -104,6 +105,9 @@ export function TripRace({ options, destination, autoStart = false }: { options:
       <ul className="space-y-3">
         {options.map((o, lane) => {
           const p = tripProgress(o, t)
+          // wider (detailed) vehicles are drawn at a smaller pixel size and need more room before the flag
+          const sz = naturalSize(o.icon)
+          const reach = Math.round(artBox(o.icon, sz, true).w) + 40
           return (
             <li key={o.id}>
               <div className="relative h-[56px] border-4 border-ink bg-white" aria-hidden="true">
@@ -118,7 +122,7 @@ export function TripRace({ options, destination, autoStart = false }: { options:
                       key={pf.id}
                       className="absolute block leading-none"
                       style={{
-                        left: `calc(${pf.at} * (100% - 64px) + 2px)`,
+                        left: `calc(${pf.at} * (100% - ${reach}px) + 2px)`,
                         bottom: 10 + pf.age * 3,
                         opacity: 1 - pf.age * 0.1,
                       }}
@@ -129,11 +133,11 @@ export function TripRace({ options, destination, autoStart = false }: { options:
                 <span
                   className="absolute top-1/2 leading-none"
                   style={{
-                    left: `calc(${p} * (100% - 64px) + 8px)`,
+                    left: `calc(${p} * (100% - ${reach}px) + 8px)`,
                     transform: `translateY(${-50 + (running && p < 1 && frame ? -8 : 0)}%)`,
                   }}
                 >
-                  <PixelArt name={o.icon} size={3} frame={running && p < 1 ? frame : 0} />
+                  <PixelArt name={o.icon} size={sz} natural frame={running && p < 1 ? frame : 0} />
                 </span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[15px]">

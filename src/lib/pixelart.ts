@@ -3,6 +3,7 @@
  * One character per pixel; '.' is see-through. Things that move are drawn facing RIGHT, the way they travel.
  */
 
+/** Small icons are 12 pixels wide; the detailed vehicles are wider. */
 export const SIZE = 12
 
 export const PALETTE: Record<string, string> = {
@@ -21,6 +22,32 @@ export const PALETTE: Record<string, string> = {
   p: '#ff8fc7',
   s: '#f5c9a0', // skin
   d: '#5b3a1e', // dark brown (hair)
+  h: '#0a0a0a', // black hair
+  S: '#8d5524', // brown skin
+  t: '#1b1b1b', // black trousers
+  // richer tones for the detailed vehicles
+  K: '#05050d', // near-black outline
+  A: '#2c2c2c', // charcoal
+  X: '#454b54', // slate
+  V: '#8c8cae', // lavender highlight
+  R: '#cc0000', // red
+  D: '#a00000', // dark red
+  F: '#d03030', // light red
+  L: '#ff2a2a', // tail light
+  H: '#d8e8f0', // headlight
+  Q: '#58504c', // tyre
+  W: '#e0c8d8', // rim
+  Y: '#ffb400', // school-bus yellow
+  U: '#ffd24c', // light yellow
+  O: '#ff8a00', // orange
+  T: '#f06a00', // dark orange
+  B: '#1478e6', // window blue
+  C: '#10b4ff', // window sky
+  Z: '#4a4a4a', // dark grey
+  G: '#7a7a7a', // grey
+  M: '#c8c8c8', // light grey
+  z: '#d9d9d9', // roof vent
+  u: '#fff3b0', // lamp
 }
 
 type Frames = readonly (readonly string[])[]
@@ -30,30 +57,30 @@ const ART_DATA = {
   walk: [
     [
       '............',
-      '...dddddd...',
-      '...dsssks...',
-      '...dsssss...',
-      '....ssss....',
-      '....gggg....',
-      '..sggggggs..',
-      '....gggg....',
-      '....bbbb....',
-      '...bb..bb...',
-      '..bb....bb..',
+      '...hhhhhh...',
+      '...hSSSkS...',
+      '...hSSSSS...',
+      '....SSSS....',
+      '....pppp....',
+      '..SppppppS..',
+      '....pppp....',
+      '....tttt....',
+      '...tt..tt...',
+      '..tt....tt..',
       '..ww....www.',
     ],
     [
       '............',
-      '...dddddd...',
-      '...dsssks...',
-      '...dsssss...',
-      '....ssss....',
-      '....gggg....',
-      '...gggggg...',
-      '....gggg....',
-      '....bbbb....',
-      '....bbbb....',
-      '....bbbb....',
+      '...hhhhhh...',
+      '...hSSSkS...',
+      '...hSSSSS...',
+      '....SSSS....',
+      '....pppp....',
+      '...pppppp...',
+      '....pppp....',
+      '....tttt....',
+      '....tttt....',
+      '....tttt....',
       '....wwwww...',
     ],
   ],
@@ -61,34 +88,38 @@ const ART_DATA = {
   // ---- getting about ----
   bus: [
     [
-      '............',
-      '.kkkkkkkkkk.',
-      '.kyyyyyyyyyk',
-      '.kccyccyccyk',
-      '.kccyccyccyk',
-      '.kyyyyyyyyyk',
-      '.kyyyyyyyyyk',
-      '.krrrrrrrrrk',
-      '.kkkkkkkkkkk',
-      '..kkk..kkk..',
-      '..kek..kek..',
-      '..kkk..kkk..',
+      '.....KKKKKK.......KKKKKK............',
+      '.....zzzzzz.......zzzzzz............',
+      '.KKKKKKKKKKKKKKKKKKKKKKKKKKKK.......',
+      '.KUUUUUUUUUUUUUUUUUUUUOOOOOOK.......',
+      '.KYYYYYYYYYYYYYYYYYYYYTTTTTTK.......',
+      '.KYKKKKKYKKKKKYKKKKKYKKKKKKKK.......',
+      '.KYKCCCKYKCCCKYKCCCKYKwwCCCKK.......',
+      '.KYKBBBKYKBBBKYKBBBKYKCBBBBKK.......',
+      '.KYKBBBKYKBBBKYKBBBKYKBBBBBKK.......',
+      '.KYKKKKKYKKKKKYKKKKKYKKKKKKKKKKKKKKK',
+      '.KYYYYYYYYYYYRRRYYYYYYYYYYYYKYYYYYYK',
+      '.KYKKKKKKKYYRwwwRYYKKKKKKKKYKOOOOuuK',
+      '.KYYYYYYYYYYYRRRYYYYYYYYYYYYKOZZZZOK',
+      '.KTKKKKKKKKTTTTTTTTTTKKKKKKKKOZZZZOK',
+      '.KKKZGGGGZKKKKKKKKKKKKZGGGGZKKKKKKKK',
+      '....ZGMMGZ............ZGMMGZ........',
+      '....KKKKKK............KKKKKK........',
     ],
   ],
   car: [
     [
-      '............',
-      '....kyyk....',
-      '...kkkkkk...',
-      '..kcccyccck.',
-      '.kkkkkkkkkkk',
-      '.kyyyyyyyyok',
-      '.kyyyyyyyyyk',
-      '.kkkkkkkkkkk',
-      '..kkk..kkk..',
-      '..kek..kek..',
-      '..kkk..kkk..',
-      '............',
+      '.........KKKKKKKK.............',
+      '........KXXXVXXXXVK...........',
+      '......KVAAAAAAAAAVVKKK........',
+      '....KVAAAAAAAAAAAAAVVXXXKK....',
+      '..KKKKKKKKKKKKKKVVVVVVVVKKKKKK',
+      '.KAAAAAAAAKRRRRRRRRRRKRRRRFFRK',
+      'KLKQQQQKAAKDFFFFFFFFDKQQQQKRHK',
+      'KLQWWWWQAAKDRRRRRRRRDQWWWWQRRK',
+      'KAQWAAWQAAKDFFFFFFFFDQWAAWQRRK',
+      'KAQWWWWQAAKDVVVVVVVVDQWWWWQDDK',
+      '.KKQQQQKKKKKKKKKKKKKKKQQQQKKK.',
     ],
   ],
   bike: [
@@ -481,6 +512,26 @@ const ART_DATA = {
       'kkk.........',
     ],
   ],
+  logo: [
+    [
+      '........................',
+      '..........KKKK..........',
+      '..........KyyK..........',
+      '..........KKKK..........',
+      'KyyyyyyyyyyyyyyyyyyyyyyK',
+      'KKKKKKKKKKKKKKKKKKKKKKKK',
+      '.K.....K..KyyK..K.....K.',
+      '.KKKKK.K..KyyK..Krr.rrK.',
+      '.KKwyK.K..KyyK..KwrrrrK.',
+      '.KKyyK.K..KyyK..K.rrr.K.',
+      '.KKKKK.K..KyyK..K..r..K.',
+      'KgggggggK.KyyK.KgggggggK',
+      '.KgggggK..KyyK..KgggggK.',
+      '..KKKKK...KyyK...KKKKK..',
+      '.......KggggggggK.......',
+      '.......KKKKKKKKKK.......',
+    ],
+  ],
   heart: [
     [
       '............',
@@ -508,7 +559,7 @@ export const framesOf = (name: IconName): readonly (readonly string[])[] => (ART
 export const frameCount = (name: IconName): number => framesOf(name).length
 
 /** Icons Qwen may choose from, kept short so the prompt stays small. */
-export const CHOOSABLE: IconName[] = ICON_NAMES.filter((n) => n !== 'flag' && n !== 'heart')
+export const CHOOSABLE: IconName[] = ICON_NAMES.filter((n) => n !== 'flag' && n !== 'heart' && n !== 'logo')
 
 /** Rectangles for one frame, run-length merged per row and colour. */
 export function rects(name: IconName, frame = 0): { x: number; y: number; w: number; fill: string }[] {
@@ -528,12 +579,34 @@ export function rects(name: IconName, frame = 0): { x: number; y: number; w: num
   return out
 }
 
+/** Width and height of an icon in art pixels. */
+export function dims(name: IconName): { w: number; h: number } {
+  const rows = framesOf(name)[0]
+  return { w: rows[0].length, h: rows.length }
+}
+
+/**
+ * How big to draw an icon. `size` is CSS pixels per art pixel for a small 12-wide icon (3 makes it 36px wide).
+ * Wider icons are shown 1.5x wider than that so their extra detail is visible, unless `natural` is set, in
+ * which case `size` is literally CSS pixels per art pixel.
+ */
+export function artBox(name: IconName, size: number, natural = false): { w: number; h: number; px: number } {
+  const { w, h } = dims(name)
+  const px = natural || w <= SIZE ? size : (SIZE * size * 1.5) / w
+  return { w: w * px, h: h * px, px }
+}
+
+/** A good literal pixel size for a vehicle on the race road: small icons 3, big detailed ones 2. */
+export const naturalSize = (name: IconName): number => (dims(name).w > SIZE ? 2 : 3)
+
 /** SVG markup, for places outside React (the click-burst overlay). */
-export function artSvg(name: IconName, px = 3, frame = 0): string {
+export function artSvg(name: IconName, size = 3, frame = 0): string {
+  const { w, h } = dims(name)
+  const box = artBox(name, size)
   const body = rects(name, frame)
     .map((r) => `<rect x="${r.x}" y="${r.y}" width="${r.w}" height="1" fill="${r.fill}"/>`)
     .join('')
-  return `<svg class="sprite" width="${SIZE * px}" height="${SIZE * px}" viewBox="0 0 ${SIZE} ${SIZE}" aria-hidden="true">${body}</svg>`
+  return `<svg class="sprite" width="${box.w}" height="${box.h}" viewBox="0 0 ${w} ${h}" aria-hidden="true">${body}</svg>`
 }
 
 /** The best icon for some words (an option name, a habit). Falls back to a coin. */

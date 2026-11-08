@@ -1,9 +1,9 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import { FlowBar } from './components/FlowBar'
 import { IconGallery } from './components/IconGallery'
+import { Logo } from './components/Logo'
 import { PixelIcon } from './components/ui'
 import type { SpriteName } from './components/ui'
-import { APP_NAME } from './data/copy'
 import { installFx } from './lib/fx'
 import { isMuted, setMuted, subscribeMuted } from './lib/sound'
 import { GoalScreen } from './screens/Goal'
@@ -51,9 +51,8 @@ export default function App() {
   return (
     <div className="min-h-screen">
       <header className="border-b-4 border-ink bg-lime">
-        <div className="mx-auto flex max-w-6xl items-center gap-2 px-6 py-3">
-          <PixelIcon name="sparkle" size={3} />
-          <span className="font-pixel text-[12px] uppercase leading-4">{APP_NAME}</span>
+        <div className="mx-auto flex max-w-[1760px] items-center gap-2 px-6 py-2 xl:px-12">
+          <Logo onClick={onboarded ? () => go('home') : undefined} />
           <button
             type="button"
             aria-pressed={muted}
@@ -76,7 +75,11 @@ export default function App() {
         </div>
       </header>
 
-      <main className={`mx-auto max-w-6xl px-6 pt-6 ${screen === 'priority' ? 'pb-32' : 'pb-28'}`}>
+      <main
+        className={`mx-auto max-w-[1760px] px-6 pt-6 xl:px-12 ${screen === 'priority' ? 'pb-32' : flow ? 'pb-8' : 'pb-28'}`}
+        // how much of the window is taken by the header, padding, bar and nav, so pages can fill the rest (see .page-fill)
+        style={{ ['--chrome' as string]: screen === 'priority' ? '290px' : flow ? '195px' : '205px' }}
+      >
         {flow && <FlowBar step={flow.step} onBack={back} backLabel={backLabel} />}
         {/* keyed so each screen (and each guess question) snaps in with a stepped slide */}
         {location.hash === '#icons' ? (

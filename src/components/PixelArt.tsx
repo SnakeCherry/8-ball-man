@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { SIZE, frameCount, rects } from '../lib/pixelart'
+import { artBox, dims, frameCount, rects } from '../lib/pixelart'
 import type { IconName } from '../lib/pixelart'
 
 const reducedMotion = (): boolean => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -14,6 +14,7 @@ export function PixelArt({
   frame = 0,
   animate = false,
   flip = false,
+  natural = false,
   className = '',
 }: {
   name: IconName
@@ -21,6 +22,8 @@ export function PixelArt({
   frame?: number
   animate?: boolean
   flip?: boolean
+  /** treat `size` as literal CSS pixels per art pixel (see artBox) */
+  natural?: boolean
   className?: string
 }) {
   const frames = frameCount(name)
@@ -32,12 +35,14 @@ export function PixelArt({
   }, [animate, frames])
 
   const f = animate ? tick : frame
+  const box = artBox(name, size, natural)
+  const { w, h } = dims(name)
   return (
     <svg
       className={`sprite inline-block shrink-0 align-middle ${className}`}
-      width={SIZE * size}
-      height={SIZE * size}
-      viewBox={`0 0 ${SIZE} ${SIZE}`}
+      width={box.w}
+      height={box.h}
+      viewBox={`0 0 ${w} ${h}`}
       style={flip ? { transform: 'scaleX(-1)' } : undefined}
       aria-hidden="true"
     >

@@ -436,3 +436,156 @@ body {
   bottom: 4px;
   animation: coindrop 0.7s steps(7) both;
 }
+
+/* ---- Conveyor belt on Home (see src/components/ConveyorBelt.tsx) ----
+   Cards are 236px wide with a 20px gap, so one card is a 256px "pitch"; the stripes move at the same 40px a second. */
+.belt-window {
+  overflow: hidden;
+  padding: 16px 8px 0;
+  margin: 0 -8px;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 36px, #000 calc(100% - 36px), transparent 100%);
+}
+.belt-track {
+  display: flex;
+  width: max-content;
+  animation: beltmove var(--belt-duration, 60s) linear infinite;
+  will-change: transform;
+}
+.belt-item {
+  flex: none;
+  width: 236px;
+  margin-right: 20px;
+}
+@keyframes beltmove {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+.belt:hover .belt-track,
+.belt:focus-within .belt-track,
+.belt-paused .belt-track,
+.belt:hover .belt-surface::before,
+.belt:focus-within .belt-surface::before,
+.belt-paused .belt-surface::before,
+.belt:hover .belt-roller,
+.belt:focus-within .belt-roller,
+.belt-paused .belt-roller {
+  animation-play-state: paused;
+}
+.belt-bar {
+  position: relative;
+  margin-top: -2px;
+}
+.belt-surface {
+  position: relative;
+  height: 26px;
+  border: 4px solid var(--color-ink);
+  background: #3a3a3a;
+  overflow: hidden;
+}
+.belt-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, #5a5a5a 0 14px, #3a3a3a 14px 28px);
+  animation: beltstripes 0.7s steps(7) infinite;
+}
+@keyframes beltstripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 28px 0;
+  }
+}
+.belt-roller {
+  position: absolute;
+  top: 50%;
+  width: 34px;
+  height: 34px;
+  margin-top: -17px;
+  border: 4px solid var(--color-ink);
+  border-radius: 50%;
+  background: conic-gradient(#c8c8c8 0 25%, #ffffff 0 50%, #c8c8c8 0 75%, #ffffff 0);
+  animation: rollerspin 0.7s steps(8) infinite;
+  z-index: 1;
+}
+@keyframes rollerspin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.belt-leg {
+  position: absolute;
+  top: 100%;
+  width: 18px;
+  height: 14px;
+  background: var(--color-ink);
+}
+.belt-plate {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border: 4px solid var(--color-ink);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.08);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* no motion: the belt becomes a row you scroll yourself, without the seam copy */
+  .belt-window {
+    overflow-x: auto;
+    -webkit-mask-image: none;
+    mask-image: none;
+    padding-bottom: 8px;
+  }
+  .belt-clone {
+    display: none;
+  }
+  .belt-track {
+    transform: none;
+  }
+}
+
+/* Logo (see src/components/Logo.tsx): ink letters with a white then a jade offset shadow, a nod to pixel wordmarks */
+.logo-word {
+  color: var(--color-ink);
+  text-shadow:
+    2px 2px 0 #ffffff,
+    4px 4px 0 #16b77d;
+}
+.logo-btn {
+  cursor: pointer;
+}
+.logo-btn:hover .logo-icon {
+  animation: pbob 1s steps(2) infinite;
+}
+.logo-btn:focus-visible {
+  outline: 4px solid var(--color-ink);
+  outline-offset: 4px;
+}
+
+@layer components {
+/* Fill the window height: pages stretch (and centre) instead of leaving a blank band under the content.
+   --chrome (set on <main>) is everything that is not page content: header, padding, step bar and nav. */
+.page-fill {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: calc(100dvh - var(--chrome, 205px));
+}
+.page-fill-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-height: calc(100dvh - var(--chrome, 195px));
+}
+}
+.belt-item {
+  height: clamp(190px, 25dvh, 340px);
+}

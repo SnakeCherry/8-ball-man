@@ -12,6 +12,7 @@ import { gbp } from '../lib/format'
 import { reducedMotion } from '../lib/fx'
 import { BAND_LABEL, CLOSE, band, closeness, guessError, monthlyCost } from '../lib/guess'
 import { nextStreak } from '../lib/gut'
+import { perMonth, isOneOff } from '../lib/habit'
 import { bestSwitch, habitLine } from '../lib/hook'
 import { AXES } from '../lib/scoring'
 import { isMuted, play, setMuted } from '../lib/sound'
@@ -84,9 +85,9 @@ export function Reveal() {
       : `Based on putting ${PRIORITY_NAME[priority]} first${vibeHistory.length ? ', as you did last time' : ''}.`
 
   return (
-    <div className="space-y-6" onClick={skipped ? undefined : () => setSkipped(true)}>
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
-      <div className="space-y-6">
+    <div className="page-fill-flow justify-between" onClick={skipped ? undefined : () => setSkipped(true)}>
+      <div className="grid gap-6 lg:grid-cols-2 lg:items-stretch">
+      <div className="flex flex-col gap-6 [&>:last-child]:flex-1">
       {guess === null ? (
       <PixelCard>
         <div className="flex items-center justify-between gap-2">
@@ -97,17 +98,17 @@ export function Reveal() {
           <PixelArt name={d.icon} size={2} /> {d.title}
         </p>
         <p className="mt-3 text-[14px] text-ink/70">
-          {usualOpt.name}, about {d.timesPerMonth} times a month
+          {isOneOff(d) ? `${usualOpt.name}, a one-off` : `${usualOpt.name}, about ${d.timesPerMonth} times a month`}
         </p>
         <p className="num text-[44px] font-semibold leading-none">
-          <CountUp value={truth} format={gbp} delayMs={skipped ? 0 : 300} /> <span className="text-[20px] font-normal">a month</span>
+          <CountUp value={truth} format={gbp} delayMs={skipped ? 0 : 300} /> <span className="text-[20px] font-normal">{isOneOff(d) ? 'once' : 'a month'}</span>
         </p>
         {scored && (
           <div className="anim-pop mt-3 space-y-2">
             <p className="text-[18px] leading-snug">{habitLine(d, usualOpt, goal)}</p>
             {sw && (
               <p className="text-[18px] leading-snug">
-                <PixelArt name={sw.option.icon} size={2} /> {sw.option.name} would save about <b className="num">{gbp(sw.monthlyGBP)}</b> a month.
+                <PixelArt name={sw.option.icon} size={2} /> {sw.option.name} would save about <b className="num">{gbp(sw.monthlyGBP)}</b>{perMonth(d)}.
               </p>
             )}
           </div>
@@ -197,7 +198,7 @@ export function Reveal() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         {AXES.map((axis, i) => (
-          <Podium key={axis} options={d.options} axis={axis} delay={base + i * gap} />
+          <Podium key={axis} options={d.options} axis={axis} delay={base + i * gap} oneOff={isOneOff(d)} />
         ))}
       </div>
     </div>

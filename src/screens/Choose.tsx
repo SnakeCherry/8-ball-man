@@ -76,7 +76,7 @@ export function Choose() {
   }
 
   return (
-    <div className="space-y-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-12 lg:space-y-0">
+    <div className="page-fill-flow lg:grid lg:grid-cols-2 lg:items-center lg:gap-12">
       <section aria-labelledby="step-priority">
         <Title className="mb-1">
           <span id="step-priority">What matters most to you this week?</span>

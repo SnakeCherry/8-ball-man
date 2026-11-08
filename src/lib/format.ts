@@ -7,12 +7,22 @@ export function gbp(n: number): string {
 
 export function mins(n: number): string {
   const m = Math.round(Math.abs(n))
+  if (m >= 1440) {
+    // a delivery or a wait: say it in days
+    const d = round1(m / 1440)
+    return `${d} ${plural(d, 'day')}`
+  }
   if (m >= 90) {
     const h = Math.floor(m / 60)
     const r = m % 60
     return r === 0 ? `${h} h` : `${h} h ${r} min`
   }
   return `${m} min`
+}
+
+/** "12 min saved" when it is faster than your usual, "12 min extra" when it is slower. Never a minus sign. */
+export function timeSavedText(minutes: number): string {
+  return `${mins(minutes)} ${minutes >= 0 ? 'saved' : 'extra'}`
 }
 
 /** A health score out of 10. */

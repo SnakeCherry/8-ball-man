@@ -9,15 +9,28 @@ import type { Decision, Option } from './types'
  * match over the preset decisions is the fallback when it is down.
  */
 
-const SYSTEM = `Turn a UK student's habit into prices for a money-saving app. GBP, Edinburgh prices.
-Option 1 is exactly what they described (their usual); options 2 and 3 are realistic alternatives for the same need.
+const SYSTEM = `Turn a UK student's habits into prices for a money-saving app. GBP, Edinburgh prices.
+They may describe ONE thing or SEVERAL (at most 3). Give each thing its own block, with a blank line between blocks.
+In each block, option 1 is exactly what they described (their usual); options 2 and 3 are realistic alternatives for the same need.
 Per single use give cost in pounds, time in minutes and a health score from 1 to 10: how good it is for their body and mind (movement, nutrition, sleep, stress). Walking or cycling 8-10, a home-cooked meal 8, a takeaway or sugary drink 2-3, a taxi or sitting still 3.
-Uses per month: weekday habit 20, 'most days' 20, weekly 4, monthly 1. Names max 3 words.
-Reply with exactly 4 lines and nothing else, fields separated by |
+Uses per month: weekday habit 20, 'most days' 20, weekly 4, monthly 1. A condition such as "only when it is on offer" or "when I can" means it happens less often, so use a lower number (2 to 6).
+A ONE-OFF PURCHASE (a console, laptop, bike, phone) is different: uses per month is 0, each option's cost is the full price, and minutes is how long until they have it (delivery, queueing or waiting, e.g. 1440 per day, 4320 for 3 days).
+Names max 3 words.
+Reply with nothing else. Each block is exactly 4 lines, fields separated by |
 Line 1: uses per month|activity name
 Lines 2-4: option name|icon|cost|minutes|health score
 icon is one word from: ${CHOOSABLE.join(', ')}
-Name each option by what it is (Uber, Bus, Walk). Never use the word usual.`
+Name each option by what it is (Uber, Bus, Walk). Never use the word usual.
+Example, for "I go running and only eat out when there is a deal":
+12|Going running
+Run outside|dumbbell|0|40|9
+Gym session|dumbbell|5|60|8
+Treadmill at home|home|0|40|6
+
+4|Eating out on deals
+Deal meal|plate|7|60|4
+Cook at home|cook|3|45|8
+Takeaway|bag|14|30|3`
 
 // A short pipe-separated reply is about a quarter of the tokens of JSON, and it streams line by line:
 // at ~28 tokens a second on the Spark that took the wait from ~9 s to ~3 s, with the first option showing at ~1.3 s.
@@ -26,12 +39,14 @@ const clamp = (n: unknown, lo: number, hi: number): number | null =>
   typeof n === 'number' && Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : null
 const text = (s: unknown, max: number): string | null => (typeof s === 'string' && s.trim() ? s.trim().slice(0, max) : null)
 
+let seq = 0
+
 /** Build a safe Decision from whatever the model returned, or null if it is unusable. */
 export function sanitiseDecision(raw: unknown, said = ''): Decision | null {
   if (!raw || typeof raw !== 'object') return null
   const r = raw as Record<string, unknown>
   const title = text(r.activity, 40)
-  const times = clamp(r.timesPerMonth, 1, 60)
+  const times = clamp(r.timesPerMonth, 0, 60)
   if (!title || times === null || !Array.isArray(r.options) || r.options.length < 3) return null
 
   const options: Option[] = []
@@ -39,7 +54,7 @@ export function sanitiseDecision(raw: unknown, said = ''): Decision | null {
     const x = (o ?? {}) as Record<string, unknown>
     const name = text(x.name, 40)
     const cost = clamp(x.costGBP, 0, 1000)
-    const time = clamp(x.timeMin, 0, 900)
+    const time = clamp(x.timeMin, 0, 20_160)
     const health = clamp(x.health, 1, 10)
     if (!name || cost === null || time === null || health === null) return null
     options.push({ id: `o${i + 1}`, name, icon: isIconName(x.icon) ? x.icon : iconForText(name), costGBP: round2(cost), timeMin: Math.round(time), health: Math.round(health) })
@@ -47,7 +62,7 @@ export function sanitiseDecision(raw: unknown, said = ''): Decision | null {
   const usual = typeof r.usualIndex === 'number' && r.usualIndex >= 0 && r.usualIndex < 3 ? Math.floor(r.usualIndex) : 0
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'habit'
   return {
-    id: `custom-${slug}-${Date.now().toString(36)}`,
+    id: `custom-${slug}-${Date.now().toString(36)}${(seq++).toString(36)}`,
     title,
     icon: isIconName(r.icon) ? r.icon : options[0].icon,
     blurb: said ? `You said: "${said.slice(0, 80)}"` : 'Estimated from what you told us.',
@@ -87,29 +102,41 @@ const num = (s: string | undefined): number | null => {
   return m ? parseFloat(m[0]) : null
 }
 
+const ONE_OFF = /one.?off|once|purchase/i
+export const MAX_GROUPS = 3
+
 /**
- * Read the pipe-separated reply. While streaming only finished lines count (`final` false); at the
- * end the last line counts even without a newline. Tolerant of bullets, backticks and stray spaces.
+ * Read the pipe-separated reply as one or more blocks (a header line, then option lines). While streaming only
+ * finished lines count (`final` false); at the end the last line counts even without a newline. Tolerant of
+ * bullets, backticks and stray spaces. A new header line starts a new block, up to MAX_GROUPS.
  */
-export function parseEstimate(text: string, final = true): ParsedEstimate {
+export function parseGroups(text: string, final = true): ParsedEstimate[] {
   const raw = text.split('\n')
   const strip = (l: string) => l.replace(/^[\s`>*-]+/, '').replace(/^\d+[.)]\s+/, '').trim()
   const lines = (final ? raw : raw.slice(0, -1)).map(strip).filter((l) => l.includes('|'))
-  const out: ParsedEstimate = { timesPerMonth: null, activity: null, options: [] }
+  const groups: ParsedEstimate[] = []
   for (const line of lines) {
     const parts = line.split('|').map((x) => x.trim())
     if (parts.length >= 4) {
       const e = parts.findIndex((x, i) => i > 0 && isIconName(x.toLowerCase()))
       const nums = parts.filter((_, i) => i > 0 && i !== e).map(num).filter((n): n is number => n !== null)
-      if (nums.length >= 3 && out.options.length < 3) {
-        out.options.push({ name: parts[0], icon: e > 0 ? (parts[e].toLowerCase() as IconName) : iconForText(parts[0]), costGBP: nums[0], timeMin: nums[1], health: nums[2] })
+      if (nums.length < 3) continue
+      if (!groups.length) groups.push({ timesPerMonth: null, activity: null, options: [] })
+      const g = groups[groups.length - 1]
+      if (g.options.length < 3) {
+        g.options.push({ name: parts[0], icon: e > 0 ? (parts[e].toLowerCase() as IconName) : iconForText(parts[0]), costGBP: nums[0], timeMin: nums[1], health: nums[2] })
       }
-    } else if (out.activity === null && parts.length >= 2) {
-      out.timesPerMonth = num(parts[0])
-      out.activity = parts[1] || null
+    } else if (parts.length >= 2 && (num(parts[0]) !== null || ONE_OFF.test(parts[0])) && groups.length < MAX_GROUPS) {
+      // a header: "0", "once" or "one-off" all mean a one-off purchase
+      groups.push({ timesPerMonth: ONE_OFF.test(parts[0]) ? 0 : num(parts[0]), activity: parts[1] || null, options: [] })
     }
   }
-  return out
+  return groups
+}
+
+/** The first block only (what a single-thing reply looks like). */
+export function parseEstimate(text: string, final = true): ParsedEstimate {
+  return parseGroups(text, final)[0] ?? { timesPerMonth: null, activity: null, options: [] }
 }
 
 /** Shape the parsed reply for sanitiseDecision. */
@@ -121,7 +148,7 @@ const toRaw = (p: ParsedEstimate) => ({
   options: p.options,
 })
 
-const cache = new Map<string, Decision>()
+const cache = new Map<string, Decision[]>()
 const request = (said: string, stream: boolean, maxTokens: number): Promise<Response> =>
   fetch('/api/llm/v1/chat/completions', {
     method: 'POST',
@@ -145,15 +172,16 @@ export function warmUpLlm(): void {
 }
 
 /**
- * Ask Qwen to price what the person said. `onPartial` fires as each line streams in, so the
- * screen can fill in option by option. Throws on any failure so the caller can fall back.
+ * Ask Qwen to price what the person said, which may be several habits. `onPartial` fires as each line streams
+ * in, so the screen can fill in block by block and option by option. Throws on any failure so the caller can
+ * fall back.
  */
-export async function estimateDecision(said: string, onPartial?: (p: ParsedEstimate) => void): Promise<Decision> {
+export async function estimateDecisions(said: string, onPartial?: (groups: ParsedEstimate[]) => void): Promise<Decision[]> {
   const key = said.trim().toLowerCase()
   const hit = cache.get(key)
   if (hit) return hit
 
-  const res = await request(said, true, 120)
+  const res = await request(said, true, 320)
   if (!res.ok || !res.body) throw new Error(`llm ${res.status}`)
   const reader = res.body.getReader()
   const dec = new TextDecoder()
@@ -174,14 +202,14 @@ export async function estimateDecision(said: string, onPartial?: (p: ParsedEstim
         /* a partial event: the rest arrives in the next chunk */
       }
     }
-    onPartial?.(parseEstimate(reply, false))
+    onPartial?.(parseGroups(reply, false))
   }
-  const parsed = parseEstimate(reply, true)
-  onPartial?.(parsed)
-  const d = sanitiseDecision(toRaw(parsed), said)
-  if (!d) throw new Error('unusable estimate')
-  cache.set(key, d)
-  return d
+  const groups = parseGroups(reply, true)
+  onPartial?.(groups)
+  const decisions = groups.map((g) => sanitiseDecision(toRaw(g), said)).filter((d): d is Decision => d !== null)
+  if (!decisions.length) throw new Error('unusable estimate')
+  cache.set(key, decisions)
+  return decisions
 }
 
 /* ---- fallback: match the words to one of the preset decisions ---- */

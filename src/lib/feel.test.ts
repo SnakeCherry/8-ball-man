@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { DECISIONS, getDecision, registerDecision } from '../data/decisions'
-import { matchPreset, parseEstimate, sanitiseDecision } from './estimate'
+import { matchPreset, parseEstimate, parseGroups, sanitiseDecision } from './estimate'
 import { bestSwitch } from './hook'
 import { forSpeech } from './speech'
-import { ICON_NAMES, PALETTE, frameCount, framesOf, iconForText } from './pixelart'
+import { creditBasis, creditFor, isOneOff, perMonth, usesPerWeek } from './habit'
+import { gbp, mins, timeSavedText } from './format'
+import { CHOOSABLE } from './pixelart'
+import { monthlyCost } from './guess'
+import { milestones, ago, paceInfo, personality, resolveHistory, totals, wrappedText } from './recap'
+import type { ChoiceRecord, Goal } from './types'
+import { ICON_NAMES, PALETTE, artBox, dims, frameCount, framesOf, iconForText, naturalSize } from './pixelart'
 import { parseSpokenAmount } from './speech'
 import { suggestFor } from './suggest'
 import { VERTS, nearestPriority, pointToWeights, weightsToPoint } from './triangle'
@@ -175,16 +181,28 @@ describe('parsing the streamed reply', () => {
 })
 
 describe('pixel art', () => {
-  it('every sprite is 12 x 12 and only uses palette colours', () => {
+  it('every sprite has one consistent size across its rows and frames, and only uses palette colours', () => {
     for (const name of ICON_NAMES) {
+      const { w, h } = dims(name)
+      expect(w, `${name} width`).toBeGreaterThanOrEqual(12)
       framesOf(name).forEach((rows, f) => {
-        expect(rows, `${name} frame ${f} rows`).toHaveLength(12)
+        expect(rows, `${name} frame ${f} rows`).toHaveLength(h)
         rows.forEach((row, y) => {
-          expect(row.length, `${name} frame ${f} row ${y}: "${row}"`).toBe(12)
+          expect(row.length, `${name} frame ${f} row ${y}: "${row}"`).toBe(w)
           for (const ch of row) expect(ch === '.' || ch in PALETTE, `${name} uses unknown colour "${ch}"`).toBe(true)
         })
       })
     }
+  })
+  it('the detailed vehicles are bigger than the small icons', () => {
+    expect(dims('bus').w).toBeGreaterThan(12)
+    expect(dims('car').w).toBeGreaterThan(12)
+    expect(naturalSize('bus')).toBe(2)
+    expect(naturalSize('walk')).toBe(3)
+    // wide icons are shown 1.5x the width of a small one at the same size; small ones are unchanged
+    expect(artBox('walk', 3).w).toBe(36)
+    expect(artBox('bus', 3).w).toBeCloseTo(54, 5)
+    expect(artBox('bus', 2, true).w).toBe(72)
   })
   it('the walker has two frames', () => {
     expect(frameCount('walk')).toBe(2)
@@ -216,5 +234,183 @@ describe('reading amounts aloud', () => {
     expect(forSpeech('Walk is £1.85 less, 10 min faster and 5 points healthier than Bus.')).toBe(
       'Walk is 1 pound 85 less, 10 minutes faster and 5 points healthier than Bus.',
     )
+  })
+})
+
+describe('recap and goal pace', () => {
+  const now = Date.UTC(2026, 10, 8)
+  const rec = (over: Partial<ChoiceRecord> = {}): ChoiceRecord => ({
+    decisionId: 'commute', optionId: 'walk', priority: 'money', guessErr: 0.1, savedGBP: 1.8, minutesSaved: -12, verdict: null, at: now - 2 * 86_400_000, ...over,
+  })
+  const goal = (saved: number, due = 40): Goal => ({ name: 'Festival', icon: 'ticket', target: 120, saved, dueISO: new Date(now + due * 86_400_000).toISOString() })
+
+  it('pairs records with options and works out health against the usual', () => {
+    const e = resolveHistory([rec(), rec({ optionId: 'uber' }), rec({ decisionId: 'ghost' })])
+    expect(e).toHaveLength(2) // the unknown decision is skipped
+    expect(e[0].chosen.id).toBe('walk')
+    expect(e[0].usual.id).toBe('bus')
+    expect(e[0].healthDelta).toBe(9 - 5)
+    expect(e[1].healthDelta).toBe(2 - 5)
+  })
+  it('adds up money, time and health', () => {
+    const h = [rec(), rec({ savedGBP: -5.6, minutesSaved: 14, optionId: 'uber' })]
+    const t = totals(h, resolveHistory(h))
+    expect(t.savedGBP).toBeCloseTo(-3.8, 5)
+    expect(t.minutes).toBe(2)
+    expect(t.health).toBe(4 - 3)
+    expect(t.choices).toBe(2)
+  })
+  it('names a personality from what you put first', () => {
+    expect(personality([])).toBeNull()
+    expect(personality([rec(), rec(), rec({ priority: 'time' })])?.title).toBe('The Penny Pincher')
+    expect(personality([rec({ priority: 'health' }), rec({ priority: 'health' })])?.title).toBe('The Health Kicker')
+    expect(personality([rec({ priority: 'time' }), rec({ priority: 'money' })])?.title).toBe('The Balancer') // a tie
+  })
+  it('judges pace once there are two recent choices', () => {
+    expect(paceInfo(goal(10), [rec()], now).status).toBe('unknown')
+    const fast = paceInfo(goal(10), [rec({ savedGBP: 50, at: now - 6 * 86_400_000 }), rec({ savedGBP: 50 })], now)
+    expect(fast.status).toBe('ahead')
+    expect(fast.projectedISO).not.toBeNull()
+    const slow = paceInfo(goal(10), [rec({ savedGBP: 1 }), rec({ savedGBP: 1 })], now)
+    expect(slow.status).toBe('behind')
+    expect(paceInfo(goal(10), [rec({ savedGBP: -3 }), rec({ savedGBP: -3 })], now)).toMatchObject({ status: 'behind', projectedISO: null })
+    expect(paceInfo(goal(120), [], now).status).toBe('done')
+  })
+  it('marks the quarter-way stations you have reached', () => {
+    expect(milestones(goal(61)).map((m) => m.reached)).toEqual([true, true, false, false])
+    expect(milestones(goal(120)).every((m) => m.reached)).toBe(true)
+    expect(milestones(goal(0)).map((m) => m.gbp)).toEqual([30, 60, 90, 120])
+  })
+  it('says when something happened', () => {
+    expect(ago(now, now)).toBe('today')
+    expect(ago(now - 86_400_000, now)).toBe('yesterday')
+    expect(ago(now - 5 * 86_400_000, now)).toBe('5 days ago')
+    expect(ago(now - 15 * 86_400_000, now)).toBe('2 weeks ago')
+  })
+  it('writes the share text', () => {
+    const text = wrappedText('Trade-Off Check', personality([rec()]), { savedGBP: 12.5, minutes: -30, health: 6, choices: 3 })
+    expect(text).toContain('The Penny Pincher')
+    expect(text).toContain('saved £12.50')
+    expect(text).toContain('30 min extra')
+    expect(text).toContain('+6 health points')
+  })
+})
+
+describe('time wording, days and one-off purchases', () => {
+  it('says saved or extra, never a minus', () => {
+    expect(timeSavedText(12)).toBe('12 min saved')
+    expect(timeSavedText(-12)).toBe('12 min extra')
+    expect(timeSavedText(0)).toBe('0 min saved')
+    expect(timeSavedText(-95)).toBe('1 h 35 min extra')
+    expect(timeSavedText(-95)).not.toContain('-')
+  })
+  it('shows long waits in days', () => {
+    expect(mins(30)).toBe('30 min')
+    expect(mins(120)).toBe('2 h')
+    expect(mins(1440)).toBe('1 day')
+    expect(mins(4320)).toBe('3 days')
+    expect(mins(2160)).toBe('1.5 days')
+  })
+
+  const habit = DECISIONS.find((x) => x.id === 'commute')! // 20 times a month
+  const oneOff = sanitiseDecision({
+    activity: 'Games console', icon: 'plate', timesPerMonth: 0, usualIndex: 0,
+    options: [
+      { name: 'New PS5', icon: 'parcel', costGBP: 450, timeMin: 1440, health: 4 },
+      { name: 'Used console', icon: 'store', costGBP: 200, timeMin: 4320, health: 4 },
+      { name: 'Switch lite', icon: 'parcel', costGBP: 180, timeMin: 2880, health: 5 },
+    ],
+  })!
+
+  it('knows a one-off from a habit', () => {
+    expect(isOneOff(habit)).toBe(false)
+    expect(isOneOff(oneOff)).toBe(true)
+    expect(oneOff.timesPerMonth).toBe(0)
+    expect(perMonth(habit)).toBe(' a month')
+    expect(perMonth(oneOff)).toBe('')
+  })
+  it('a one-off costs its price once, a habit costs per month', () => {
+    expect(monthlyCost(oneOff.options[0], oneOff)).toBe(450)
+    expect(monthlyCost(habit.options[0], habit)).toBeCloseTo(1.8 * 20, 5)
+  })
+  it('credits a week of a habit but the whole difference of a one-off', () => {
+    expect(usesPerWeek(habit)).toBeCloseTo((20 * 12) / 52, 5)
+    expect(creditFor(habit, 5.6)).toBeCloseTo(5.6 * ((20 * 12) / 52), 5)
+    expect(usesPerWeek(oneOff)).toBe(1)
+    expect(creditFor(oneOff, 250)).toBe(250)
+    expect(creditBasis(oneOff, 'Used console')).toBe('once')
+    expect(creditBasis(habit, 'Walk')).toBe('over a week of Walk')
+  })
+  it('a weekly credit makes the goal visibly move', () => {
+    // walk instead of Uber: £7.40 a use, about 4.6 uses a week
+    expect(creditFor(habit, 7.4)).toBeGreaterThan(30)
+  })
+  it('finds the saving on a one-off as a single difference', () => {
+    const s = bestSwitch(oneOff)!
+    expect(s.option.name).toBe('Switch lite')
+    expect(s.monthlyGBP).toBe(270)
+  })
+  it('reads a one-off header from Qwen', () => {
+    const p = parseEstimate('0|Games console\nNew PS5|parcel|450|1440|4\nUsed console|store|200|4320|4\nSwitch lite|parcel|180|2880|5')
+    expect(p.timesPerMonth).toBe(0)
+    expect(parseEstimate('once|Games console\nA|parcel|1|1|1').timesPerMonth).toBe(0)
+    expect(parseEstimate('one-off|Laptop\nA|parcel|1|1|1').timesPerMonth).toBe(0)
+    const d = sanitiseDecision({ activity: p.activity, icon: p.options[0].icon, timesPerMonth: p.timesPerMonth, usualIndex: 0, options: p.options })!
+    expect(isOneOff(d)).toBe(true)
+    expect(d.options[1].timeMin).toBe(4320) // days are no longer clamped away
+  })
+  it('the logo is a sprite but never something Qwen can choose', () => {
+    expect(CHOOSABLE).not.toContain('logo')
+    expect(gbp(450)).toBe('£450')
+  })
+})
+
+describe('several habits in one sentence', () => {
+  const two =
+    '20|Going on walks\nWalk in Edinburgh|walk|0|45|9\nBus to park|bus|2|30|7\nCar to park|car|5|20|4\n\n' +
+    '4|Clearance food shopping\nClearance haul|cart|15|60|6\nFull price shop|store|30|60|6\nCook from pantry|home|0|45|8'
+
+  it('splits a reply into one group per habit', () => {
+    const g = parseGroups(two)
+    expect(g).toHaveLength(2)
+    expect(g[0].activity).toBe('Going on walks')
+    expect(g[0].timesPerMonth).toBe(20)
+    expect(g[0].options.map((o) => o.name)).toEqual(['Walk in Edinburgh', 'Bus to park', 'Car to park'])
+    expect(g[1].activity).toBe('Clearance food shopping')
+    expect(g[1].timesPerMonth).toBe(4) // "only when it's on clearance" happens less often
+    expect(g[1].options[0].icon).toBe('cart')
+  })
+  it('turns each group into its own decision with its own frequency', () => {
+    const decisions = parseGroups(two).map((p) => sanitiseDecision({ activity: p.activity, icon: p.options[0].icon, timesPerMonth: p.timesPerMonth, usualIndex: 0, options: p.options }, 'x'))
+    expect(decisions.every((d) => d !== null)).toBe(true)
+    expect(decisions.map((d) => d!.timesPerMonth)).toEqual([20, 4])
+    expect(new Set(decisions.map((d) => d!.id)).size).toBe(2) // different ids
+  })
+  it('a mix of habits and a one-off keeps the one-off marked', () => {
+    const g = parseGroups(two + '\n\n0|Buying a laptop\nNew laptop|parcel|800|4320|1\nRefurbished|parcel|450|1440|1\nLibrary loan|book|0|10|1')
+    expect(g).toHaveLength(3)
+    expect(g[2].timesPerMonth).toBe(0)
+  })
+  it('never makes more than three groups', () => {
+    const block = (n: number) => `${n}|Thing ${n}\nA|bus|1|1|1\nB|walk|2|2|2\nC|car|3|3|3`
+    expect(parseGroups([1, 2, 3, 4, 5].map(block).join('\n\n'))).toHaveLength(3)
+  })
+  it('while streaming a half-finished second group only shows what has finished', () => {
+    const streaming = two.slice(0, two.indexOf('Full price shop') + 10)
+    const g = parseGroups(streaming, false)
+    expect(g).toHaveLength(2)
+    expect(g[1].options).toHaveLength(1) // only "Clearance haul" is a complete line
+  })
+  it('ignores a cut-off line instead of starting a bogus group', () => {
+    const g = parseGroups('20|Walks\nWalk|walk|0|45|9\nBus|bus|2', true)
+    expect(g).toHaveLength(1)
+    expect(g[0].options).toHaveLength(1)
+  })
+  it('options with no header still make a group, and nonsense makes none', () => {
+    expect(parseGroups('Walk|walk|0|45|9\nBus|bus|2|30|7')).toHaveLength(1)
+    expect(parseGroups('Sure! Here you go.')).toHaveLength(0)
+  })
+  it('parseEstimate still reads the first block', () => {
+    expect(parseEstimate(two).activity).toBe('Going on walks')
   })
 })

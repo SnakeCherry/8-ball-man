@@ -61,7 +61,7 @@ export function Predict() {
   const urgent = left <= URGENT_S
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 lg:grid lg:grid-cols-2 lg:items-center lg:gap-16 lg:space-y-0">
+    <div className="mx-auto max-w-6xl space-y-6 lg:grid lg:min-h-[calc(100dvh-var(--chrome))] lg:grid-cols-2 lg:items-center lg:gap-16 lg:space-y-0">
       <div className="space-y-6">
       <div>
         <Label>

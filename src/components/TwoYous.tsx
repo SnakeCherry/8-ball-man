@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { PixelArt } from './PixelArt'
 import { PixelButton, PixelCard, PixelIcon, Label } from './ui'
 import { reducedMotion } from '../lib/fx'
-import { gbp, mins } from '../lib/format'
+import { gbp, timeSavedText } from '../lib/format'
 import { progressAt, raceSentence, shortDate } from '../lib/race'
 import type { Lane, Race } from '../lib/race'
 import type { Goal } from '../lib/types'
@@ -250,7 +250,7 @@ export function TwoYous({ race, goal, savedBefore }: { race: Race; goal: Goal; s
   // what the slower road may buy you back, said without judgement
   const trade = [a, b]
     .filter((l) => Math.abs(l.minutesPerMonth) >= 30)
-    .map((l) => `${l.option.name}: ${l.minutesPerMonth > 0 ? mins(l.minutesPerMonth) + ' back' : mins(l.minutesPerMonth) + ' extra'} a month`)
+    .map((l) => `${l.option.name}: ${timeSavedText(l.minutesPerMonth)} a month`)
 
   return (
     <PixelCard className="space-y-4">

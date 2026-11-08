@@ -1,13 +1,14 @@
 import { gbp, plural, round1 } from './format'
 import { dailyRate } from './goal'
 import { monthlyCost } from './guess'
+import { isOneOff } from './habit'
 import type { Decision, Goal, Option } from './types'
 
 /** The real number behind a habit, in money and in days of your goal. */
 export function habitLine(d: Decision, usual: Option, goal: Goal | null, now = Date.now()): string {
   const monthly = monthlyCost(usual, d)
   if (monthly < 0.5) return `Your usual ${usual.name} costs nothing, so this one is about time and health.`
-  const money = `Your usual ${usual.name} costs ${gbp(monthly)} a month.`
+  const money = `Your usual ${usual.name} costs ${gbp(monthly)}${isOneOff(d) ? '' : ' a month'}.`
   if (!goal) return money
   const remaining = Math.max(0, goal.target - goal.saved)
   if (remaining > 0 && monthly >= remaining) return `${money} That is more than the ${gbp(remaining)} you still need for ${goal.name}.`
@@ -24,7 +25,7 @@ export function bestSwitch(d: Decision, usualId = d.usualId): { option: Option; 
   if (!usual) return null
   const best = d.options
     .filter((o) => o.id !== usualId)
-    .map((o) => ({ option: o, monthlyGBP: (usual.costGBP - o.costGBP) * d.timesPerMonth }))
+    .map((o) => ({ option: o, monthlyGBP: (usual.costGBP - o.costGBP) * (isOneOff(d) ? 1 : d.timesPerMonth) }))
     .sort((a, b) => b.monthlyGBP - a.monthlyGBP)[0]
   return best && best.monthlyGBP >= 0.5 ? best : null
 }
