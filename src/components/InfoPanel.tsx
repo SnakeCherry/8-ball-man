@@ -56,10 +56,10 @@ export function InfoPanel({ decision, focusId }: { decision: Decision; focusId?:
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className={`pbox pselect inline-flex items-center gap-2 leading-tight ${big ? 'px-3 py-2 text-[17px]' : 'px-2 py-1 text-[15px]'}`}
+                        className={`pbox pblue pselect inline-flex items-center gap-2 leading-tight ${big ? 'px-3 py-2 text-[18px]' : 'px-2 py-1 text-[16px]'}`}
                       >
                         {l.title}
-                        <PixelIcon name="arrow" size={2} />
+                        <PixelIcon name="arrow" size={2} color="#ffffff" />
                       </a>
                     </li>
                   ))}

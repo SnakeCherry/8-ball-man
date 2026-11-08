@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { ConveyorBelt } from '../components/ConveyorBelt'
 import { BallCard } from '../components/BallCard'
-import { PixelSky } from '../components/PixelSky'
 import { PixelButton } from '../components/ui'
 import { DECISIONS, SOURCE_NOTE } from '../data/decisions'
 import { gbp, mins } from '../lib/format'
@@ -46,30 +45,27 @@ export function Home() {
 
   return (
     <div className="page-fill">
-      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
-        <PixelSky />
-      </div>
       <BallCard />
 
       {history.length > 0 && (
         <ul className="num grid grid-cols-3 gap-3 text-center" aria-label="Your week so far">
-          <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(totalsNow.savedGBP)}`}>
-            <span className="block text-[14px] text-muted">Money this week</span>
-            <span className="block text-[22px] font-semibold">
+          <li className={`border-4 border-ink px-2 py-4 leading-tight ${tone(totalsNow.savedGBP)}`}>
+            <span className="block text-[20px] text-ink/80">Money this week</span>
+            <span className="mt-1 block text-[32px] font-semibold">
               {totalsNow.savedGBP >= 0 ? '+' : '−'}
               {gbp(totalsNow.savedGBP)}
             </span>
           </li>
-          <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(totalsNow.minutes)}`}>
-            <span className="block text-[14px] text-muted">Free time</span>
-            <span className="block text-[22px] font-semibold">
+          <li className={`border-4 border-ink px-2 py-4 leading-tight ${tone(totalsNow.minutes)}`}>
+            <span className="block text-[20px] text-ink/80">Free time</span>
+            <span className="mt-1 block text-[32px] font-semibold">
               {totalsNow.minutes >= 0 ? '+' : '−'}
               {mins(totalsNow.minutes)}
             </span>
           </li>
-          <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(lifeYear)}`} title="A rough, illustrative estimate if you keep your choices up for a year. Not medical advice.">
-            <span className="block text-[14px] text-muted">Life {lifeYear >= 0 ? 'added' : 'lost'}</span>
-            <span className="block text-[22px] font-semibold">{signedSpan(lifeYear)}</span>
+          <li className={`border-4 border-ink px-2 py-4 leading-tight ${tone(lifeYear)}`} title="A rough, illustrative estimate if you keep your choices up for a year. Not medical advice.">
+            <span className="block text-[20px] text-ink/80">Life {lifeYear >= 0 ? 'added' : 'lost'}</span>
+            <span className="mt-1 block text-[32px] font-semibold">{signedSpan(lifeYear)}</span>
           </li>
         </ul>
       )}

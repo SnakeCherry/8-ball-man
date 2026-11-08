@@ -67,7 +67,7 @@ export function useSpeechInput(onText: (text: string) => void) {
       rec.current = r
       setPhase('recording')
     } catch {
-      setMsg('Mic is blocked. Allow it in your browser, or type instead.')
+      setMsg('Mic blocked. Type instead.')
     }
   }, [phase])
 
@@ -84,7 +84,7 @@ export function useSpeechInput(onText: (text: string) => void) {
       if (!text) throw new Error('nothing heard')
       if (alive.current) onTextRef.current(text)
     } catch {
-      setMsg("Couldn't hear that. Hold and try again, or type it.")
+      setMsg("Didn't catch that. Try again.")
     }
     if (alive.current) setPhase('idle')
   }, [])
@@ -104,9 +104,9 @@ export function useSpeechInput(onText: (text: string) => void) {
       (t) => (last = t),
       (error) => {
         setPhase('idle')
-        if (error === 'not-allowed' || error === 'service-not-allowed') setMsg('Mic is blocked. Allow it in your browser, or type instead.')
+        if (error === 'not-allowed' || error === 'service-not-allowed') setMsg('Mic blocked. Type instead.')
         else if (last.trim() && alive.current) onTextRef.current(last.trim())
-        else setMsg("Didn't catch that. Try again, or type it.")
+        else setMsg("Didn't catch that. Try again.")
       },
     )
   }, [phase])

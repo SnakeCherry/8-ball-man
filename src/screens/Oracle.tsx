@@ -197,7 +197,7 @@ export function Oracle() {
           {status}
         </p>
         <div className={`text-center ${stage === 'ready' ? '' : 'min-h-[24px]'}`} aria-hidden="true">
-          {stage === 'pricing' ? <ThinkingLine /> : !listening && stage === 'idle' && phase === 'idle' && <p className="font-pixel text-[12px] uppercase text-white/80">Tap the ball or type below</p>}
+          {stage === 'pricing' && <ThinkingLine />}
         </div>
 
         {stage === 'asking' && ask && (
@@ -257,7 +257,7 @@ export function Oracle() {
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            placeholder={stage === 'asking' ? 'Your answer…' : 'Try: Uber to uni every morning and a Lidl shop'}
+            placeholder={stage === 'asking' ? 'Your answer…' : 'Or type it…'}
             aria-label="Describe what you are doing"
             className="min-w-0 flex-1 border-4 border-ink bg-white px-4 py-3 text-[20px] text-ink"
           />

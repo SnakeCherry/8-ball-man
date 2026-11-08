@@ -39,22 +39,22 @@ export function NextWeekPlan() {
       ) : (
         <>
           <p className="text-[20px] leading-snug">{headline}</p>
-          <ul className="space-y-3">
+          <ul className="space-y-5">
             {items.map((it) => (
-              <li key={it.decision.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-4 border-ink bg-white p-3">
+              <li key={it.decision.id} className="pbox-deep grid grid-cols-[auto_1fr_auto] items-center gap-4 p-4">
                 <span className="grid h-[52px] w-[52px] place-items-center border-4 border-ink bg-white" aria-hidden="true">
                   <PixelArt name={it.option.icon} size={3} />
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[17px] leading-tight">
+                  <span className="block text-[19px] leading-tight">
                     <b>{it.option.name}</b> instead of {it.last.name}
                   </span>
-                  <span className="num mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[14px]">
+                  <span className="num mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[16px]">
                     <b className="border-2 border-ink bg-lime px-1">about {gbp(it.weeklyGBP)} a week</b>
                     <span>{it.healthDelta === 0 ? 'same health' : `${signedSpan(lifeFromPoints(it.healthDelta))} of life`}</span>
                     <span>{timeSavedText(it.minutes)}</span>
                   </span>
-                  <span className="block text-[14px] text-muted">{it.decision.title}</span>
+                  <span className="mt-1 block text-[16px] text-muted">{it.decision.title}</span>
                 </span>
                 <PixelButton variant="white" className="!min-h-[44px] !px-3 !py-1 text-[14px]" data-fx="star" onClick={() => tryIt(it.decision.id)}>
                   Try it
@@ -62,7 +62,7 @@ export function NextWeekPlan() {
               </li>
             ))}
           </ul>
-          <p className="text-[14px] text-muted">Counted against your usual, for a week of each habit.</p>
+          <p className="text-[16px] text-muted">Counted against your usual, for a week of each habit.</p>
         </>
       )}
     </PixelCard>
