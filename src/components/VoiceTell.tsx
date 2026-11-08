@@ -15,6 +15,9 @@ import { useSpeechInput } from '../lib/useSpeechInput'
 import type { Decision } from '../lib/types'
 import { useAppStore } from '../store/useAppStore'
 
+/** One tap to try it, so nobody has to think of something to say. */
+const EXAMPLES = ['I get an Uber to uni every morning', 'Cooking vs takeaway most nights', 'I want to buy a games console']
+
 type Stage = 'idle' | 'pricing' | 'ready' | 'fallback' | 'error'
 
 interface PanelOption {
@@ -123,14 +126,17 @@ export function VoiceTell() {
   }
 
   return (
-    <PixelCard className="space-y-4 bg-white">
-      <Label>Say what you're doing</Label>
+    <PixelCard className="space-y-5 bg-white p-5 sm:p-7">
+      <div className="flex items-center justify-between gap-3">
+        <Label>Say what you're doing</Label>
+        <span className="hidden text-[15px] text-ink/70 sm:block">A habit, a meal, a trip, something you want to buy.</span>
+      </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-center">
-        <div className="space-y-2">
+      <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+        <div className="space-y-4">
           {engine !== 'none' && engine !== 'checking' && (
             <PixelButton
-              className="w-full touch-none select-none !min-h-[64px] !text-[18px]"
+              className="w-full touch-none select-none !min-h-[96px] !text-[26px]"
               data-fx="sparkle"
               aria-pressed={busy}
               disabled={phase === 'decoding' || stage === 'pricing'}
@@ -155,34 +161,45 @@ export function VoiceTell() {
                 : { onClick: speech.toggleBrowser })}
             >
               <span className="flex items-center justify-center gap-3">
-                <PixelIcon name="mic" size={4} className={busy ? 'anim-blink' : ''} />
+                <PixelIcon name="mic" size={6} className={busy ? 'anim-blink' : ''} />
                 {label}
               </span>
             </PixelButton>
           )}
           {hold && (phase === 'recording' || phase === 'decoding') && <Equaliser levels={speech.levels} active={phase === 'recording'} />}
-          <form onSubmit={submit} className="flex gap-2">
+          <form onSubmit={submit} className="flex gap-3">
             <input
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               placeholder='…or type it: "Uber to uni every morning"'
               aria-label="Describe what you are doing"
-              className="min-w-0 flex-1 border-4 border-ink bg-white px-3 py-2 text-[16px]"
+              className="min-w-0 flex-1 border-4 border-ink bg-white px-4 py-3 text-[20px]"
             />
-            <PixelButton variant="white" type="submit" className="!min-h-[44px] !px-4" disabled={!typed.trim() || stage === 'pricing'}>
+            <PixelButton variant="white" type="submit" className="!min-h-[60px] !px-6 !text-[16px]" disabled={!typed.trim() || stage === 'pricing'}>
               Go
             </PixelButton>
           </form>
           {speech.msg && <p className="text-[15px] text-ink/70">{speech.msg}</p>}
+          {stage === 'idle' && (
+            <ul className="flex flex-wrap gap-2" aria-label="Try one of these">
+              {EXAMPLES.map((e) => (
+                <li key={e}>
+                  <button type="button" className="pbox-flat pselect px-3 py-2 text-[16px] leading-tight" onClick={() => void price(e)}>
+                    {e}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="hidden lg:block" aria-hidden="true">
-          <PixelArt name="walk" size={6} animate />
+          <PixelArt name="walk" size={9} animate />
         </div>
       </div>
 
       {said && stage !== 'idle' && (
-        <p className="text-[20px] leading-snug">
+        <p className="text-[24px] leading-snug">
           “<Typed text={said} />”
         </p>
       )}

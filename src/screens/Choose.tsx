@@ -3,19 +3,15 @@ import { createPortal } from 'react-dom'
 import { PixelArt } from '../components/PixelArt'
 import { PriorityMixer } from '../components/PriorityMixer'
 import { PixelButton, PixelCard, Label, Title } from '../components/ui'
-import { PRIORITY_NAME } from '../data/copy'
 import { getDecision } from '../data/decisions'
 import { adviceFor, buildFacts, plainAdvice } from '../lib/advice'
-import { suggestFor } from '../lib/suggest'
-import { moneyRatio, useAppStore } from '../store/useAppStore'
+import { suggestWith } from '../lib/suggest'
+import { useAppStore } from '../store/useAppStore'
 
 /** The priority screen: slide money, time and health to say what matters, watch the options re-rank, then take one. */
 export function Choose() {
   const decisionId = useAppStore((s) => s.decisionId)
-  const priority = useAppStore((s) => s.priority)
   const weights = useAppStore((s) => s.weights)
-  const vibeHistory = useAppStore((s) => s.vibeHistory)
-  const moneyLeft = useAppStore((s) => s.moneyLeft)
   const usual = useAppStore((s) => s.usual)
   const setWeights = useAppStore((s) => s.setWeights)
   const setUsual = useAppStore((s) => s.setUsual)
@@ -25,8 +21,8 @@ export function Choose() {
   const [advice, setAdvice] = useState('')
 
   const d = decisionId ? getDecision(decisionId) : null
-  const sug = d ? suggestFor(d, priority, vibeHistory, moneyRatio(moneyLeft), weights) : null
-  const effective = weights ?? sug?.blend.weights ?? null
+  const sug = d ? suggestWith(d, weights) : null
+  const effective = sug?.weights ?? null
   const adviceKey = d && effective ? `${d.id}|${effective.cost.toFixed(2)}|${effective.time.toFixed(2)}|${effective.health.toFixed(2)}` : ''
 
   // the plain-English line is instant and always right; Qwen's wording replaces it a moment after you stop sliding
@@ -45,17 +41,11 @@ export function Choose() {
   }, [adviceKey])
 
   if (!d || !sug || !effective) return null
-  const { blend, suggested } = sug
+  const { suggested } = sug
   const usualId = usual[d.id] ?? d.usualId
   const usualOpt = d.options.find((o) => o.id === usualId)!
   // the best fit is preselected until the student picks something else themselves
   const selected = d.options.find((o) => o.id === (manual ?? suggested.id)) ?? suggested
-  const last = vibeHistory.at(-1)
-
-  const notes: string[] = []
-  if (last) notes.push(`Last time you put ${PRIORITY_NAME[last]} first.`)
-  if (blend.historyShifted) notes.push("Your past choices lean that way a little, so we've started the sliders there.")
-  if (blend.moneyNudged) notes.push('Money left is low, so money starts a bit higher.')
 
   return (
     <div className="page-fill-flow lg:grid lg:grid-cols-[3fr_2fr] lg:items-start lg:gap-12">
@@ -63,7 +53,7 @@ export function Choose() {
         <Title className="mb-1">
           <span id="step-priority">What matters most to you this week?</span>
         </Title>
-        <p className="mb-4 text-[15px] text-ink/70">Slide each one. The options re-rank as you go.</p>
+        <p className="mb-4 text-[15px] text-ink/70">Everything starts in the middle. Slide what matters more or less to you and the options re-rank.</p>
         <PriorityMixer
           key={d.id}
           options={d.options}
@@ -87,7 +77,6 @@ export function Choose() {
           <p className="text-[18px] leading-snug" aria-live="polite">
             {advice}
           </p>
-          {notes.length > 0 && <p className="text-[14px] text-ink/70">{notes.join(' ')}</p>}
         </PixelCard>
 
         <div>

@@ -589,3 +589,18 @@ body {
 .belt-item {
   height: clamp(190px, 25dvh, 340px);
 }
+
+/* The time and life lines in the Time vs life chart draw themselves in stepped frames (see components/LifeView.tsx).
+   Only when motion is allowed: otherwise the lines are simply shown. */
+@media (prefers-reduced-motion: no-preference) {
+  .life-line {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+    animation: lifedraw 1.2s steps(14) forwards;
+  }
+}
+@keyframes lifedraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}

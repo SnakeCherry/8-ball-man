@@ -115,6 +115,10 @@ export interface QuadPoint {
   x: number
   /** health points gained (+) or lost (-) against your usual */
   y: number
+  /** where to draw it across the chart, -0.9 to 0.9: a soft curve, so big wins get close to the edge but never sit on it */
+  xn: number
+  /** where to draw it up the chart, -0.9 to 0.9 */
+  yn: number
   /** time saved (+) or extra (-) as a percentage of the usual time, -100 to 100 */
   timePct: number
   quadrant: Quadrant
@@ -122,18 +126,24 @@ export interface QuadPoint {
 
 const clamp = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n))
 
+/** A soft limit: small changes move you a fair way, huge ones only creep towards the edge (never past 0.9). */
+const soft = (v: number, scale: number): number => 0.9 * Math.tanh(v / scale)
+
 /**
  * Where each choice sits against your usual. Money is a percentage of the usual price, so a £450 console and a
- * £1.80 coffee share one scale. Top right (cheaper and healthier) is the sweet spot.
+ * £1.80 coffee share one scale, and positions use a soft curve so they rarely crowd the edges. Top right (cheaper and
+ * healthier) is the sweet spot.
  */
 export function quadrantPoints(entries: Entry[], limit = 12): QuadPoint[] {
   return entries.slice(-limit).map((entry) => {
     const { usual, chosen } = entry
     const x = usual.costGBP > 0 ? clamp(((usual.costGBP - chosen.costGBP) / usual.costGBP) * 100, -100, 100) : chosen.costGBP > 0 ? -100 : 0
     const y = clamp(chosen.health - usual.health, -9, 9)
+    const xn = soft(x, 80)
+    const yn = soft(y, 6)
     const timePct = usual.timeMin > 0 ? clamp(((usual.timeMin - chosen.timeMin) / usual.timeMin) * 100, -100, 100) : 0
     const quadrant: Quadrant = x === 0 && y === 0 ? 'same' : x > 0 && y > 0 ? 'win' : y > 0 ? 'healthier' : x > 0 ? 'cheaper' : 'neither'
-    return { entry, x, y, timePct, quadrant }
+    return { entry, x, y, xn, yn, timePct, quadrant }
   })
 }
 
@@ -153,7 +163,7 @@ export function wrappedText(appName: string, p: Personality | null, t: Totals, s
     `${t.savedGBP >= 0 ? 'saved' : 'spent'} £${Math.abs(t.savedGBP).toFixed(2)} vs my usual`,
     timeSavedText(t.minutes),
     `${t.health >= 0 ? '+' : '-'}${Math.abs(t.health)} health points`,
-    ...(score && score.pct !== null ? [`a ${score.pct}% win-win score (${score.tier})`] : []),
+    ...(score && score.pct !== null ? [`${score.pct}% of my choices were better than my usual`] : []),
   ]
   return `My ${appName} wrapped${p ? `: ${p.title}` : ''}. ${bits.join(', ')} over ${t.choices} ${plural(t.choices, 'choice')}.`
 }

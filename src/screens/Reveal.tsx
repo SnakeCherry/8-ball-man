@@ -5,7 +5,7 @@ import { Podium } from '../components/Podium'
 import { PixelButton, PixelCard, PixelIcon, Label } from '../components/ui'
 import { InfoPanel } from '../components/InfoPanel'
 import { WarmupTrack } from '../components/WarmupTrack'
-import { HOST_LINE, PRIORITY_NAME } from '../data/copy'
+import { HOST_LINE } from '../data/copy'
 import { getDecision } from '../data/decisions'
 import { adviceFor, buildFacts, plainAdvice } from '../lib/advice'
 import { gbp } from '../lib/format'
@@ -17,8 +17,9 @@ import { bestSwitch, habitLine } from '../lib/hook'
 import { AXES } from '../lib/scoring'
 import { isMuted, play, setMuted } from '../lib/sound'
 import { speak, stopSpeaking } from '../lib/speech'
-import { suggestFor } from '../lib/suggest'
-import { moneyRatio, useAppStore } from '../store/useAppStore'
+import { weightsText } from '../lib/mix'
+import { suggestWith } from '../lib/suggest'
+import { useAppStore } from '../store/useAppStore'
 
 const AXIS_GAP = 1.0 // seconds between podiums
 
@@ -28,9 +29,7 @@ export function Reveal() {
   const guess = useAppStore((s) => s.guess)
   const session = useAppStore((s) => s.session)
   const usual = useAppStore((s) => s.usual)
-  const priority = useAppStore((s) => s.priority)
-  const vibeHistory = useAppStore((s) => s.vibeHistory)
-  const moneyLeft = useAppStore((s) => s.moneyLeft)
+  const weights = useAppStore((s) => s.weights)
   const streakStart = useAppStore((s) => s.streak)
   const go = useAppStore((s) => s.go)
   // tap anywhere to skip the staged reveal: every delay drops to zero
@@ -49,14 +48,14 @@ export function Reveal() {
   useEffect(() => {
     if (!decisionId) return
     const dd = getDecision(decisionId)
-    const facts = buildFacts(dd, suggestFor(dd, priority, vibeHistory, moneyRatio(moneyLeft)).blend.weights)
+    const facts = buildFacts(dd, suggestWith(dd, weights).weights)
     setAdvice(plainAdvice(facts))
     let live = true
     void adviceFor(facts).then((text) => live && setAdvice(text))
     return () => {
       live = false
     }
-  }, [decisionId, priority, vibeHistory, moneyLeft])
+  }, [decisionId, weights])
 
   // once the score lands, the host reads out the result (if you guessed) and then our suggestion
   const announced = useRef(false)
@@ -66,8 +65,8 @@ export function Reveal() {
     announced.current = true
     const dd = getDecision(decisionId)
     const u = dd.options.find((o) => o.id === (usual[dd.id] ?? dd.usualId))!
-    const sug = suggestFor(dd, priority, vibeHistory, moneyRatio(moneyLeft))
-    const facts = buildFacts(dd, sug.blend.weights)
+    const sug = suggestWith(dd, weights)
+    const facts = buildFacts(dd, sug.weights)
     const bnd = guess === null ? null : band(guessError(guess, monthlyCost(u, dd)))
     play(bnd === null || bnd === 'bullseye' || bnd === 'close' ? 'bullseye' : 'miss')
     void adviceFor(facts).then((text) => {
@@ -75,7 +74,7 @@ export function Reveal() {
       const line = `We suggest ${sug.suggested.name}. ${text}`
       void speak(bnd === null ? line : `${HOST_LINE[bnd](gbp(monthlyCost(u, dd)))} ${line}`)
     })
-  }, [scored, decisionId, guess, usual, priority, vibeHistory, moneyLeft])
+  }, [scored, decisionId, guess, usual, weights])
   // leaving the screen stops the voice
   useEffect(
     () => () => {
@@ -94,15 +93,12 @@ export function Reveal() {
   const sw = bestSwitch(d, usualOpt.id)
   const isClose = err <= CLOSE
   const b = band(err)
-  const { suggested } = suggestFor(d, priority, vibeHistory, moneyRatio(moneyLeft))
+  const { suggested } = suggestWith(d, weights)
   const spoken = `We suggest ${suggested.name}. ${advice}`
   const gap = skipped ? 0 : AXIS_GAP
   const base = skipped ? 0 : 0.9
   const streakNow = scored ? nextStreak(streakStart, [isClose]) : streakStart
-  const basis =
-    priority === 'balanced'
-      ? 'Based on a bit of everything.'
-      : `Based on putting ${PRIORITY_NAME[priority]} first${vibeHistory.length ? ', as you did last time' : ''}.`
+  const basis = weights ? `Based on your mix: ${weightsText(weights)}.` : 'Based on money, time and health counting equally.'
 
   return (
     <div className="page-fill-flow justify-between" onClick={skipped ? undefined : () => setSkipped(true)}>

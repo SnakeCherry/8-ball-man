@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { BadgeCard } from '../components/BadgeCard'
+import { LifeView } from '../components/LifeView'
 import { CountUp } from '../components/CountUp'
 import { PixelArt } from '../components/PixelArt'
 import { PixelButton, PixelCard, Label } from '../components/ui'
@@ -18,6 +19,7 @@ export function Result() {
   const session = useAppStore((s) => s.session)
   const lastResult = useAppStore((s) => s.lastResult)
   const timeRate = useAppStore((s) => s.timeRate)
+  const usual = useAppStore((s) => s.usual)
   const go = useAppStore((s) => s.go)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -33,6 +35,13 @@ export function Result() {
   }, [total])
 
   if (!results.length) return null
+  // the habits you just chose, for the time vs life chart
+  const lifeItems = results.flatMap((r) => {
+    const d = getDecision(r.decisionId)
+    const u = d.options.find((o) => o.id === (usual[d.id] ?? d.usualId))
+    const c = d.options.find((o) => o.id === r.optionId)
+    return u && c ? [{ decision: d, usual: u, chosen: c }] : []
+  })
   // the highest new medal level for each badge across the run
   const medals = new Map<string, number>()
   for (const m of results.flatMap((r) => r.newBadges)) medals.set(m.id, Math.max(medals.get(m.id) ?? 0, m.tier))
@@ -79,6 +88,8 @@ export function Result() {
           )
         })}
       </ul>
+
+      <LifeView items={lifeItems} />
 
       {[...medals].map(([id, tier]) => (
         <BadgeCard key={id} id={id} tier={tier} />

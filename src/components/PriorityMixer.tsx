@@ -3,7 +3,7 @@ import { PixelArt } from './PixelArt'
 import { PixelIcon } from './ui'
 import type { SpriteName } from './ui'
 import { gbp, mins, score } from '../lib/format'
-import { MIX_MAX, contributions, valuesToWeights, weightsText, weightsToValues } from '../lib/mix'
+import { EVEN_MIX, MIX_MAX, contributions, valuesToWeights, weightsText } from '../lib/mix'
 import type { Mix } from '../lib/mix'
 import type { Axis, Option, Weights } from '../lib/types'
 
@@ -36,8 +36,8 @@ export function PriorityMixer({
   selectedId: string
   onSelect: (id: string) => void
 }) {
-  // the sliders start where the current weights are, then belong to the student
-  const [mix, setMix] = useState<Mix>(() => weightsToValues(weights))
+  // every slider starts in the middle, then belongs to the student
+  const [mix, setMix] = useState<Mix>(EVEN_MIX)
   const live = valuesToWeights(mix)
   const board = contributions(options, weights)
   const bestFit = Math.max(board[0].fit, 0.0001)
@@ -92,9 +92,8 @@ export function PriorityMixer({
             type="button"
             className="pbtn pbtn-white !min-h-[36px] !px-3 !py-1 text-[13px]"
             onClick={() => {
-              const even = { cost: 5, time: 5, health: 5 }
-              setMix(even)
-              onChange(valuesToWeights(even))
+              setMix(EVEN_MIX)
+              onChange(valuesToWeights(EVEN_MIX))
             }}
           >
             Even mix

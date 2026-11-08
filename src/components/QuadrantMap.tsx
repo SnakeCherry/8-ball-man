@@ -11,8 +11,8 @@ const Y0 = 30
 const Y1 = 298
 const CX = (X0 + X1) / 2
 const CY = (Y0 + Y1) / 2
-const SX = (X1 - X0) / 200 // pixels per 1% of money
-const SY = (Y1 - Y0) / 18 // pixels per health point
+const HALF_W = (X1 - X0) / 2 // a position of 1 would be the very edge; points stay inside 0.9
+const HALF_H = (Y1 - Y0) / 2
 
 const QUADRANTS = [
   { label: 'CHEAPER AND HEALTHIER', x: X1 - 6, y: Y0 + 14, anchor: 'end' as const, fill: 'rgba(110,240,127,0.28)', rx: CX, ry: Y0 },
@@ -31,9 +31,9 @@ const squareFor = (timePct: number): number => 24 + (Math.min(100, Math.abs(time
 export function QuadrantMap({ points }: { points: QuadPoint[] }) {
   // choices on the same spot would hide each other, so nudge repeats sideways
   const placed = points.map((p, i) => {
-    const px = CX + p.x * SX
-    const py = CY - p.y * SY
-    const clash = points.slice(0, i).filter((q) => Math.abs(CX + q.x * SX - px) < 22 && Math.abs(CY - q.y * SY - py) < 22).length
+    const px = CX + p.xn * HALF_W
+    const py = CY - p.yn * HALF_H
+    const clash = points.slice(0, i).filter((q) => Math.abs(CX + q.xn * HALF_W - px) < 22 && Math.abs(CY - q.yn * HALF_H - py) < 22).length
     return { p, px: px + clash * 14, py: py - clash * 6 }
   })
   const wins = points.filter((p) => p.quadrant === 'win').length
@@ -53,6 +53,20 @@ export function QuadrantMap({ points }: { points: QuadPoint[] }) {
         <rect x={X0} y={Y0} width={X1 - X0} height={Y1 - Y0} fill="none" stroke="#0a0a0a" strokeWidth={4} aria-hidden="true" />
         <line x1={CX} x2={CX} y1={Y0} y2={Y1} stroke="#0a0a0a" strokeWidth={2} strokeDasharray="4 5" aria-hidden="true" />
         <line x1={X0} x2={X1} y1={CY} y2={CY} stroke="#0a0a0a" strokeWidth={2} strokeDasharray="4 5" aria-hidden="true" />
+        {/* tick marks along the zero lines: a bit (0.35) and a lot (0.7) each way */}
+        {[-0.7, -0.35, 0.35, 0.7].map((t) => (
+          <g key={`tx${t}`} aria-hidden="true">
+            <line x1={CX + t * HALF_W} x2={CX + t * HALF_W} y1={CY - 4} y2={CY + 4} stroke="#0a0a0a" strokeWidth={2} />
+            <text x={CX + t * HALF_W} y={CY + 16} textAnchor="middle" className="font-pixel" fontSize={6} fill="#0a0a0a" fillOpacity={0.55}>
+              {Math.abs(t) > 0.5 ? 'A LOT' : 'A BIT'}
+            </text>
+          </g>
+        ))}
+        {[-0.7, -0.35, 0.35, 0.7].map((t) => (
+          <g key={`ty${t}`} aria-hidden="true">
+            <line x1={CX - 4} x2={CX + 4} y1={CY - t * HALF_H} y2={CY - t * HALF_H} stroke="#0a0a0a" strokeWidth={2} />
+          </g>
+        ))}
         {QUADRANTS.map((q) => (
           <text key={q.label} x={q.x} y={q.y} textAnchor={q.anchor} className="font-pixel" fontSize={8} fill="#0a0a0a" fillOpacity={0.7} aria-hidden="true">
             {q.label}

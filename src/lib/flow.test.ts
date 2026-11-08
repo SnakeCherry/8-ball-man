@@ -6,6 +6,8 @@ import { brandFor, buildLinks, defaultInfo, isSafeUrl, parseInfo, toOptionInfos 
 import { valuesToWeights } from './mix'
 import { nextInQueue } from './queue'
 import { migrateState, useAppStore } from '../store/useAppStore'
+import { EVEN_MIX, EVEN_WEIGHTS } from './mix'
+import { suggestWith } from './suggest'
 
 const commute = DECISIONS.find((d) => d.id === 'commute')!
 const money = valuesToWeights({ cost: 10, time: 0, health: 0 })
@@ -174,5 +176,23 @@ describe('chaining habits', () => {
     expect('goal' in old).toBe(false)
     expect(old.onboarded).toBe(true)
     expect(getDecision('commute').id).toBe('commute')
+  })
+})
+
+describe('sliders start in the middle', () => {
+  it('every slider starts at the same middle value, and that is an even split', () => {
+    expect(EVEN_MIX).toEqual({ cost: 5, time: 5, health: 5 })
+    const w = valuesToWeights(EVEN_MIX)
+    expect(w.cost).toBeCloseTo(w.time, 10)
+    expect(w.time).toBeCloseTo(w.health, 10)
+    expect(EVEN_WEIGHTS).toEqual(w)
+  })
+  it('until the student moves a slider our suggestion counts everything equally', () => {
+    const s = suggestWith(commute, null)
+    expect(s.weights).toEqual(EVEN_WEIGHTS)
+    expect(s.suggested.id).toBe(suggestWith(commute, EVEN_WEIGHTS).suggested.id)
+    // moving a slider does change it
+    expect(suggestWith(commute, valuesToWeights({ cost: 10, time: 0, health: 0 })).suggested.id).toBe('walk')
+    expect(suggestWith(commute, valuesToWeights({ cost: 0, time: 10, health: 0 })).suggested.id).toBe('uber')
   })
 })

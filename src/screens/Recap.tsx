@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { BadgeShelf } from '../components/BadgeShelf'
 import { CountUp } from '../components/CountUp'
+import { LifeView } from '../components/LifeView'
 import { NextWeekPlan } from '../components/NextWeekPlan'
 import { PixelArt } from '../components/PixelArt'
 import { QuadrantMap } from '../components/QuadrantMap'
@@ -35,6 +36,8 @@ export function Recap() {
   const who = personality(history)
   const score = winWinScore(entries)
   const levels = badgeLevels(badgeStats(history, entries, chains))
+  // your latest choice on each habit, kept up week after week, for the time vs life chart
+  const lifeItems = [...new Map(entries.map((e) => [e.decision.id, { decision: e.decision, usual: e.usual, chosen: e.chosen }])).values()]
 
   if (!history.length) {
     return (
@@ -103,9 +106,13 @@ export function Recap() {
           <CountUp value={Math.abs(t.health)} format={(n) => `${Math.round(n)}`} delayMs={350} />
         </Tile>
         <Tile
-          label="Win-win score"
+          label="Better than usual"
           tone={score.pct !== null && score.pct >= 50 ? 'bg-lime' : 'bg-white'}
-          sub={score.pct === null ? `${3 - score.of} more ${3 - score.of === 1 ? 'choice' : 'choices'} to score` : `${score.tier}: ${score.wins} of ${score.of} beat your usual twice over`}
+          sub={
+            score.pct === null
+              ? `Make ${3 - score.of} more ${3 - score.of === 1 ? 'choice' : 'choices'} to see this`
+              : `${score.wins} of ${score.of} choices beat your usual on at least two things (money, time, health)`
+          }
         >
           {score.pct === null ? (
             `${score.wins}/${score.of}`
@@ -119,6 +126,8 @@ export function Recap() {
         <QuadrantMap points={quadrantPoints(entries)} />
         <NextWeekPlan />
       </div>
+
+      <LifeView items={lifeItems} />
 
       <BadgeShelf levels={levels} />
 

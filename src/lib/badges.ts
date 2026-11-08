@@ -27,7 +27,7 @@ export const BADGES: BadgeDef[] = [
   { id: 'penny', name: 'Penny Pincher', line: 'Choices where you put money first', icon: 'pound', stat: 'money', tiers: [3, 8, 20] },
   { id: 'timesaver', name: 'Time Saver', line: 'Choices where you put time first', icon: 'clock', stat: 'time', tiers: [3, 8, 20] },
   { id: 'health', name: 'Health Kick', line: 'Choices where you put health first', icon: 'heart', stat: 'health', tiers: [3, 8, 20] },
-  { id: 'winwin', name: 'Win-Win', line: 'Choices that beat your usual on two things at once', icon: 'star', stat: 'winwin', tiers: [2, 6, 15] },
+  { id: 'winwin', name: 'Better Swaps', line: 'Choices that beat your usual on two or more things', icon: 'star', stat: 'winwin', tiers: [2, 6, 15] },
   { id: 'switcher', name: 'Switcher', line: 'Times you chose something other than your usual', icon: 'arrow', stat: 'switch', tiers: [3, 10, 25] },
   { id: 'saver', name: 'Saver', line: 'Pounds saved against your usual', icon: 'chart', stat: 'saved', tiers: [10, 50, 200], gbp: true },
   { id: 'explorer', name: 'Explorer', line: 'Different habits you have looked at', icon: 'eye', stat: 'tried', tiers: [3, 6, 12] },

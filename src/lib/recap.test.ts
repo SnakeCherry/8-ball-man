@@ -13,7 +13,7 @@ const rec = (over: Partial<ChoiceRecord> = {}): ChoiceRecord => ({
 // commute: usual bus (£1.80, 28 min, health 5); walk (£0, 40 min, health 9); uber (£7.40, 14 min, health 2)
 const entriesOf = (...r: ChoiceRecord[]) => resolveHistory(r)
 
-describe('win-win score', () => {
+describe('better than usual score', () => {
   it('a choice is a win-win when it beats the usual on two or more of money, time and health', () => {
     expect(winWin(entriesOf(rec({ optionId: 'walk' }))[0])).toEqual({ axes: 2, win: true }) // cheaper and healthier, slower
     expect(winWin(entriesOf(rec({ optionId: 'uber' }))[0])).toEqual({ axes: 1, win: false }) // quicker only
@@ -34,8 +34,8 @@ describe('win-win score', () => {
   it('goes into the share text once it has a score', () => {
     const e = entriesOf(rec(), rec(), rec())
     const text = wrappedText('App', null, { savedGBP: 5, minutes: 10, health: 3, choices: 3 }, winWinScore(e))
-    expect(text).toContain('100% win-win score (Trade-off Pro)')
-    expect(wrappedText('App', null, { savedGBP: 5, minutes: 10, health: 3, choices: 3 })).not.toContain('win-win')
+    expect(text).toContain('100% of my choices were better than my usual')
+    expect(wrappedText('App', null, { savedGBP: 5, minutes: 10, health: 3, choices: 3 })).not.toContain('better than my usual')
   })
 })
 
@@ -54,8 +54,29 @@ describe('quadrant map points', () => {
     expect(p.quadrant).toBe('neither')
     expect(p.timePct).toBeGreaterThan(0)
   })
+  it('keeps points off the edges: big wins get close but never reach them', () => {
+    const [free] = quadrantPoints(entriesOf(rec({ optionId: 'walk' }))) // free vs £1.80: +100%, +4 health
+    expect(free.x).toBe(100)
+    expect(free.xn).toBeGreaterThan(0.6)
+    expect(free.xn).toBeLessThan(0.9)
+    expect(free.yn).toBeLessThan(0.9)
+    const all = quadrantPoints(entriesOf(...(['walk', 'uber', 'bus'] as const).map((o) => rec({ optionId: o }))))
+    for (const p of all) {
+      expect(Math.abs(p.xn)).toBeLessThan(0.9)
+      expect(Math.abs(p.yn)).toBeLessThan(0.9)
+    }
+  })
+  it('the soft curve keeps order and sign, and small changes still move a fair way', () => {
+    const cheap = quadrantPoints(entriesOf(rec({ decisionId: 'coffee', optionId: 'union' })))[0] // £1.90 vs £3.20: about +41%
+    const free = quadrantPoints(entriesOf(rec({ decisionId: 'coffee', optionId: 'home' })))[0] // £0.30: about +91%
+    expect(cheap.x).toBeLessThan(free.x)
+    expect(cheap.xn).toBeLessThan(free.xn)
+    expect(cheap.xn).toBeGreaterThan(0.3)
+    expect(quadrantPoints(entriesOf(rec({ optionId: 'uber' })))[0].xn).toBeLessThan(0) // dearer is left
+    expect(quadrantPoints(entriesOf(rec({ optionId: 'uber' })))[0].yn).toBeLessThan(0) // less healthy is down
+  })
   it('puts the usual in the middle', () => {
-    expect(quadrantPoints(entriesOf(rec({ optionId: 'bus' })))[0]).toMatchObject({ x: 0, y: 0, quadrant: 'same' })
+    expect(quadrantPoints(entriesOf(rec({ optionId: 'bus' })))[0]).toMatchObject({ x: 0, y: 0, xn: 0, yn: 0, quadrant: 'same' })
   })
   it('a £450 console and a £1.80 coffee share one scale', () => {
     const console_ = sanitiseDecision({
@@ -77,6 +98,11 @@ describe('quadrant map points', () => {
 })
 
 describe('medal badges', () => {
+  it('the old Win-Win badge is now called Better Swaps, with the same id so saved data still works', () => {
+    const b = BADGES.find((x) => x.id === 'winwin')!
+    expect(b.name).toBe('Better Swaps')
+    expect(b.line).toContain('beat your usual')
+  })
   it('reaches each level at its edge', () => {
     expect(tierOf(2, [3, 8, 20])).toBe(0)
     expect(tierOf(3, [3, 8, 20])).toBe(1)

@@ -40,7 +40,7 @@ export function Home() {
 
   return (
     <div className="page-fill">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[2fr_1fr] xl:items-start">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[3fr_1fr] xl:items-start">
         <VoiceTell />
         <div className="min-w-0 space-y-6">
           {history.length > 0 && (

@@ -7,6 +7,9 @@ export type Mix = Record<Axis, number>
 const FLOOR = 0.05
 export const MIX_MAX = 10
 
+/** Every slider in the middle: money, time and health matter equally until the student says otherwise. */
+export const EVEN_MIX: Mix = { cost: MIX_MAX / 2, time: MIX_MAX / 2, health: MIX_MAX / 2 }
+
 /** Slider values to weights that sum to 1. No priority is ever ignored completely (5% floor). All zero means an even split. */
 export function valuesToWeights(v: Mix): Weights {
   const raw = AXES.map((a) => Math.max(0, v[a]))
@@ -64,3 +67,6 @@ export function contributions(options: Option[], weights: Weights): Contribution
     })
     .sort((a, b) => b.fit - a.fit)
 }
+
+/** An even split, the starting point for ranking. */
+export const EVEN_WEIGHTS: Weights = valuesToWeights(EVEN_MIX)
