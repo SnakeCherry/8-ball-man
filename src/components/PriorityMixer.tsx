@@ -4,7 +4,7 @@ import { PixelIcon } from './ui'
 import type { SpriteName } from './ui'
 import { gbp, mins } from '../lib/format'
 import { lifeEachText } from '../lib/life'
-import { EVEN_MIX, MIX_MAX, contributions, rankToMix, valuesToWeights, weightsText } from '../lib/mix'
+import { EVEN_MIX, MIX_MAX, contributions, rankToMix, valuesToWeights, weightsText, weightsToValues } from '../lib/mix'
 import type { Mix } from '../lib/mix'
 import type { Axis, Option, Weights } from '../lib/types'
 
@@ -30,6 +30,7 @@ export function PriorityMixer({
   options,
   usual,
   weights,
+  chosen = false,
   onChange,
   selectedId,
   onSelect,
@@ -38,15 +39,17 @@ export function PriorityMixer({
   /** your usual option: health is shown as life gained or lost compared with it */
   usual: Option
   weights: Weights
+  /** the student already said what matters (for an earlier habit): start from that instead of the middle */
+  chosen?: boolean
   onChange: (w: Weights) => void
   selectedId: string
   onSelect: (id: string) => void
 }) {
   // every slider starts in the middle, then belongs to the student
-  const [mix, setMix] = useState<Mix>(EVEN_MIX)
+  const [mix, setMix] = useState<Mix>(() => (chosen ? weightsToValues(weights) : EVEN_MIX))
   // easy rank: tap Money, Time and Health from most to least important instead of sliding
   const [easy, setEasy] = useState(true)
-  const [order, setOrder] = useState<Axis[]>([])
+  const [order, setOrder] = useState<Axis[]>(() => (chosen ? [...AXES].sort((a, b) => weights[b] - weights[a]) : []))
   const live = valuesToWeights(mix)
   const board = contributions(options, weights)
   const bestFit = Math.max(board[0].fit, 0.0001)
@@ -148,17 +151,6 @@ export function PriorityMixer({
               }}
             >
               {easy ? 'Use sliders' : 'Easy rank'}
-            </button>
-            <button
-              type="button"
-              className="pbtn pbtn-white !min-h-[44px] !px-3 !py-1 text-[14px]"
-              onClick={() => {
-                setMix(EVEN_MIX)
-                setOrder([])
-                onChange(valuesToWeights(EVEN_MIX))
-              }}
-            >
-              Even mix
             </button>
           </div>
         </div>

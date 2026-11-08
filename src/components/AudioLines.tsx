@@ -10,7 +10,7 @@ const reduced = (): boolean => typeof window !== 'undefined' && window.matchMedi
  * older ones further out, purple through pink to teal. While the ball thinks they ripple on their own; when nothing
  * is happening they rest as dots.
  */
-export function AudioLines({ mood }: { mood: BallMood }) {
+export function AudioLines({ mood, compact = false }: { mood: BallMood; compact?: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null)
   const moodRef = useRef(mood)
   moodRef.current = mood
@@ -63,5 +63,5 @@ export function AudioLines({ mood }: { mood: BallMood }) {
     return () => cancelAnimationFrame(raf)
   }, [])
 
-  return <canvas ref={ref} className="block h-16 w-full" aria-hidden="true" />
+  return <canvas ref={ref} className={`block w-full ${compact ? 'h-8' : 'h-16'}`} aria-hidden="true" />
 }

@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { getDecision, registerDecision } from '../data/decisions'
+import { DECISIONS, getDecision, registerDecision } from '../data/decisions'
+
+/** Presets already live on the belt; only decisions made from speech are kept as customs (no duplicate cards). */
+const notPreset = (ds: Decision[]): Decision[] => ds.filter((d) => !DECISIONS.some((p) => p.id === d.id))
 import { badgeLevels, badgeStats, newMedals, tiersById } from '../lib/badges'
 import type { BadgeLevel } from '../lib/badges'
 import { resolveHistory } from '../lib/recap'
@@ -224,13 +227,13 @@ export const useAppStore = create<AppState>()(
 
       addCustoms: (ds) => {
         ds.forEach(registerDecision)
-        set((s) => ({ customDecisions: [...s.customDecisions.filter((x) => !ds.some((d) => d.id === x.id)), ...ds].slice(-12) }))
+        set((s) => ({ customDecisions: [...s.customDecisions.filter((x) => !ds.some((d) => d.id === x.id)), ...notPreset(ds)].slice(-12) }))
       },
 
       startCustom: (d) => {
         registerDecision(d)
         set((s) => ({
-          customDecisions: [...s.customDecisions.filter((x) => x.id !== d.id), d].slice(-12),
+          customDecisions: [...s.customDecisions.filter((x) => x.id !== d.id), ...notPreset([d])].slice(-12),
           decisionId: d.id,
           usual: { ...s.usual, [d.id]: d.usualId },
           guess: null,
@@ -248,7 +251,7 @@ export const useAppStore = create<AppState>()(
         ds.forEach(registerDecision)
         const [first, ...rest] = ds
         set((s) => ({
-          customDecisions: [...s.customDecisions.filter((x) => !ds.some((d) => d.id === x.id)), ...ds].slice(-12),
+          customDecisions: [...s.customDecisions.filter((x) => !ds.some((d) => d.id === x.id)), ...notPreset(ds)].slice(-12),
           decisionId: first.id,
           usual: { ...s.usual, ...Object.fromEntries(ds.map((d) => [d.id, d.usualId])) },
           guess: null,
@@ -331,7 +334,8 @@ export const useAppStore = create<AppState>()(
           vibeHistory: [...s.vibeHistory, s.priority],
           lastResult: result,
           session,
-          weights: null,
+          // what matters to you is kept for the next habit from the same sentence, and cleared at the end
+          weights: next ? s.weights : null,
           // another habit from the same sentence: go straight to its results; otherwise the summary
           ...(next ? { decisionId: next, guess: null, queue: rest, screen: 'reveal' as Screen } : { queue: [], screen: 'result' as Screen }),
         })

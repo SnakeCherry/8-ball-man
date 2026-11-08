@@ -4,6 +4,7 @@ import { CountUp } from '../components/CountUp'
 import { Podium } from '../components/Podium'
 import { PixelButton, PixelCard, PixelIcon, Label } from '../components/ui'
 import { InfoPanel } from '../components/InfoPanel'
+import { NextBar } from '../components/NextBar'
 import { SavingBig } from '../components/SavingBig'
 import { WarmupTrack } from '../components/WarmupTrack'
 import { HOST_LINE } from '../data/copy'
@@ -106,7 +107,7 @@ export function Reveal() {
   const delta = monthlyCost(usualOpt, d) - monthlyCost(suggested, d)
 
   return (
-    <div className="space-y-6" onClick={skipped ? undefined : () => setSkipped(true)}>
+    <div className="space-y-8" onClick={skipped ? undefined : () => setSkipped(true)}>
       {session.length > 0 && (
         <p className="pcard bg-lime px-3 py-2 text-[17px] leading-snug">
           Done with <b>{getDecision(session.at(-1)!.decisionId).title}</b>: you chose{' '}
@@ -115,7 +116,7 @@ export function Reveal() {
       )}
 
       {/* 1. the answer: the one thing to read first */}
-      <PixelCard className="space-y-4 bg-lime">
+      <PixelCard className="space-y-6 bg-lime p-6 sm:p-8">
         <div className="flex items-center justify-between gap-2">
           <Label className="[&>span]:bg-white">1 · The answer</Label>
           <PixelButton
@@ -135,13 +136,13 @@ export function Reveal() {
             </span>
           </PixelButton>
         </div>
-        <div className="grid items-center gap-5 md:grid-cols-[1fr_auto]">
-          <div className="space-y-3">
+        <div className="grid items-start gap-6 md:grid-cols-[1fr_auto]">
+          <div className="max-w-[62ch] space-y-4">
             <p className="flex items-center gap-3 text-[clamp(26px,3.2vw,36px)] leading-tight">
               <PixelArt name={suggested.icon} size={5} />
               <b>{suggested.name}</b>
             </p>
-            <p className="text-[18px] leading-snug" aria-live="polite">
+            <p className="text-[18px] leading-relaxed" aria-live="polite">
               {advice}
             </p>
             <p className="text-[14px] text-muted">{basis} You can change that on the next screen.</p>
@@ -150,12 +151,9 @@ export function Reveal() {
             <SavingBig delta={delta} once={isOneOff(d)} keep={keep} />
           </div>
         </div>
-        <PixelButton className="w-full" data-fx="star" onClick={() => go('priority')}>
-          Next: what matters this week?
-        </PixelButton>
       </PixelCard>
 
-      <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+      <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
         {/* 2. your habit: what it costs now */}
         {guess === null ? (
           <PixelCard className="space-y-2">
@@ -235,6 +233,11 @@ export function Reveal() {
           </div>
         )}
       </section>
+      <NextBar>
+        <PixelButton className="w-full" data-fx="star" onClick={() => go('priority')}>
+          Next: what matters this week?
+        </PixelButton>
+      </NextBar>
     </div>
   )
 }

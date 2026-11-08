@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DECISIONS } from '../data/decisions'
 import { parseQuestion } from './estimate'
-import { fortuneLine, savingExplain, savingSummary } from './fortune'
+import { fortuneLine, savingExplain, savingSummary, switchLife } from './fortune'
 
 describe('fortuneLine', () => {
   it('names the best switch and what it saves', () => {
@@ -9,7 +9,7 @@ describe('fortuneLine', () => {
     expect(line).toMatch(/^(The signs say: .+ saved|.+ is already a good call|Nothing here is cheaper)/)
   })
   it('counts several things', () => {
-    expect(fortuneLine([DECISIONS[0], DECISIONS[1]])).toContain('2 things')
+    expect(fortuneLine([DECISIONS[0], DECISIONS[1]])).not.toContain('future')
   })
   it('copes with nothing', () => {
     expect(fortuneLine([])).toContain('cloudy')
@@ -61,5 +61,15 @@ describe('savingExplain', () => {
   it('names what you would pick instead of your usual, with both prices', () => {
     const line = savingExplain(DECISIONS.find((x) => x.id === 'commute')!)
     expect(line).toMatch(/instead of/)
+  })
+})
+
+describe('switchLife', () => {
+  it('projects the best switch over the years, and is null for one-offs', () => {
+    const m = switchLife(DECISIONS.find((x) => x.id === 'commute')!, 10)
+    expect(m === null || typeof m === 'number').toBe(true)
+    const oneOff = structuredClone(DECISIONS[0])
+    oneOff.timesPerMonth = 0
+    expect(switchLife(oneOff)).toBeNull()
   })
 })

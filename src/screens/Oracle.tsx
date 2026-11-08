@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import type { FormEvent } from 'react'
 import { AudioLines } from '../components/AudioLines'
 import { EightBall } from '../components/EightBall'
@@ -10,7 +10,12 @@ import { PixelButton, PixelIcon } from '../components/ui'
 import { Typed } from '../components/VoiceBits'
 import { TOO_BIG_GBP, estimateDecisions, matchPreset } from '../lib/estimate'
 import type { ParsedEstimate } from '../lib/estimate'
-import { fortuneLine, savingExplain, savingSummary } from '../lib/fortune'
+import { fortuneLine, savingParts, savingSummary, switchLife } from '../lib/fortune'
+import { buysLine } from '../lib/buys'
+import { formatSpan } from '../lib/life'
+import { burstAtElement } from '../lib/fx'
+import { NextBar } from '../components/NextBar'
+import { PixelSky } from '../components/PixelSky'
 import { isMuted, play, setMuted, subscribeMuted } from '../lib/sound'
 import { speak, stopSpeaking } from '../lib/speech'
 import type { Decision } from '../lib/types'
@@ -33,23 +38,6 @@ function ThinkingLine() {
   return <p className="font-pixel text-[12px] uppercase leading-relaxed text-white">{THINKING[i]}</p>
 }
 
-/** A sky of little twinkling pixel stars, placed the same way every time. */
-function Stars() {
-  const stars = useMemo(() => {
-    let seed = 7
-    const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647)
-    return Array.from({ length: 46 }, () => ({ x: rnd() * 100, y: rnd() * 100, s: rnd() < 0.2 ? 6 : 4, d: rnd() * 3 }))
-  }, [])
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      {stars.map((s, i) => (
-        <i key={i} className="star" style={{ left: `${s.x}%`, top: `${s.y}%`, width: s.s, height: s.s, animationDelay: `${s.d}s` }} />
-      ))}
-      <i className="shooting" />
-    </div>
-  )
-}
-
 /**
  * The 8-ball's own page: a night sky, the ball in the middle, lines that move with the sound, and the answer. It
  * starts listening as soon as it opens (or prices the example you tapped).
@@ -59,13 +47,11 @@ export function Oracle() {
   const seed = useAppStore((s) => s.ballSeed)
   const startQueue = useAppStore((s) => s.startQueue)
   const addCustoms = useAppStore((s) => s.addCustoms)
-  const startDecision = useAppStore((s) => s.startDecision)
   const muted = useSyncExternalStore(subscribeMuted, isMuted)
   const [said, setSaid] = useState('')
   const [typed, setTyped] = useState('')
   const [stage, setStage] = useState<Stage>('idle')
   const [plans, setPlans] = useState<Decision[]>([])
-  const [preset, setPreset] = useState<Decision | null>(null)
   const [partial, setPartial] = useState<ParsedEstimate[]>([])
   const [ask, setAsk] = useState<{ question: string; choices: string[] } | null>(null)
   const started = useRef(false)
@@ -77,7 +63,6 @@ export function Oracle() {
     setSaid(shown)
     setStage('pricing')
     setPlans([])
-    setPreset(null)
     setPartial([])
     setAsk(null)
     try {
@@ -101,9 +86,16 @@ export function Oracle() {
       play(savingSummary(res.decisions) ? 'sparkle' : 'magic') // a saving is good news
       void speak(fortuneLine(res.decisions))
     } catch {
+      // Qwen is down: answer from the closest preset habit, looking exactly like a normal answer
       const m = matchPreset(text)
-      setPreset(m)
-      setStage(m ? 'fallback' : 'error')
+      if (m) {
+        setPlans([m])
+        setStage('ready')
+        play('magic')
+        void speak(fortuneLine([m]))
+      } else {
+        setStage('error')
+      }
     }
   }
 
@@ -140,14 +132,24 @@ export function Oracle() {
         ? fortuneLine(plans)
         : stage === 'toobig'
           ? TOO_BIG_LINE
-          : stage === 'fallback'
-          ? 'Qwen is asleep. Here is the closest I can find.'
           : stage === 'error'
             ? 'The mist is cloudy. Try rewording.'
             : ''
   const status = listening ? 'Listening' : phase === 'decoding' ? 'Decoding' : stage === 'pricing' ? 'Thinking' : ballText || (engine === 'none' ? 'Type what you do' : 'Tap the ball to ask')
 
   const saving = stage === 'ready' ? savingSummary(plans) : null
+  const cardRef = useRef<HTMLDivElement>(null)
+  const buys = saving ? buysLine(saving.amount, saving.once) : null
+  // the life twist, for a single habit: what the switch could add over ten years
+  const lifeMin = stage === 'ready' && plans.length === 1 ? switchLife(plans[0], 10) : null
+  // the payoff: coins fly out of the saving the moment the answer is there
+  useEffect(() => {
+    if (!saving) return
+    const t = window.setTimeout(() => burstAtElement(cardRef.current, { icon: 'pound', count: 12, spread: 96 }), 450)
+    return () => window.clearTimeout(t)
+    // once per answer
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage === 'ready' && plans.length > 0 ? plans[0].id : ''])
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -158,9 +160,9 @@ export function Oracle() {
   }
 
   return (
-    <div className="night fixed inset-0 z-50 overflow-y-auto text-white" style={{ background: 'radial-gradient(ellipse at 50% 30%, #2a1470 0%, #140a3a 45%, var(--color-night) 100%)' }}>
-      <Stars />
-      <div className="relative mx-auto flex min-h-full max-w-3xl flex-col items-center gap-4 px-5 pb-10 pt-4">
+    <div className="night night-sky fixed inset-0 z-50 overflow-y-auto text-white">
+      <PixelSky />
+      <div className="relative mx-auto flex min-h-full max-w-3xl flex-col items-center gap-4 px-5 pb-32 pt-4">
         <div className="flex w-full items-center justify-between">
           <PixelButton variant="white" className="!min-h-[44px] !px-4 !py-1 text-[14px]" onClick={() => go('home')}>
             ← Back
@@ -180,7 +182,7 @@ export function Oracle() {
           type="button"
           aria-label="Ask the ball by voice"
           disabled={phase === 'decoding' || stage === 'pricing' || engine === 'none' || engine === 'checking'}
-          className="block w-full max-w-[400px] select-none"
+          className={`block w-full select-none ${stage === 'ready' || stage === 'toobig' ? 'max-w-[250px]' : 'max-w-[400px]'}`}
           onClick={listen}
         >
           <EightBall mood={mood}>
@@ -189,12 +191,12 @@ export function Oracle() {
         </button>
 
         <div className="w-full max-w-[560px]">
-          <AudioLines mood={mood} />
+          <AudioLines mood={mood} compact={stage === 'ready' || stage === 'toobig'} />
         </div>
         <p className="sr-only" role="status">
           {status}
         </p>
-        <div className="min-h-[24px] text-center" aria-hidden="true">
+        <div className={`text-center ${stage === 'ready' ? '' : 'min-h-[24px]'}`} aria-hidden="true">
           {stage === 'pricing' ? <ThinkingLine /> : !listening && stage === 'idle' && phase === 'idle' && <p className="font-pixel text-[12px] uppercase text-white/80">Tap the ball or type below</p>}
         </div>
 
@@ -213,11 +215,49 @@ export function Oracle() {
           </div>
         )}
 
+        {stage === 'ready' && plans.length > 0 && (
+          <div className="anim-pop flex w-full max-w-[720px] flex-col items-center gap-5">
+            {saving && (
+              <div ref={cardRef} className="w-full space-y-6 border-4 border-ink bg-lime p-6 text-center text-ink sm:p-8">
+                <SavingBig delta={saving.amount} once={saving.once} />
+                {saving.count > 1 && (
+                  <p className="text-[16px]">
+                    across {saving.count} {saving.count === 1 ? 'thing' : 'things'}
+                  </p>
+                )}
+                {buys && <p className="text-[19px] leading-relaxed">{buys}</p>}
+                {lifeMin !== null && (
+                  <p className="flex items-center justify-center gap-2 text-[17px] leading-relaxed">
+                    <PixelArt name="heart" size={2} />
+                    <span>
+                      And about <b>{formatSpan(lifeMin)}</b> of {lifeMin >= 0 ? 'extra ' : 'less '}life over 10 years, based on your actions.
+                    </span>
+                  </p>
+                )}
+                <ul className="divide-y-2 divide-ink/20 border-t-2 border-ink/20 text-left">
+                  {plans.map((p) => {
+                    const parts = savingParts(p)
+                    return parts ? (
+                      <li key={p.id} className="space-y-1 py-4">
+                        <p className="text-[19px] leading-snug">
+                          <b>{parts.title}</b>
+                        </p>
+                        <p className="text-[16px] leading-relaxed text-muted">{parts.detail}</p>
+                      </li>
+                    ) : null
+                  })}
+                </ul>
+              </div>
+            )}
+            <p className="text-[14px] text-white/70">Estimates only. Real prices vary.</p>
+          </div>
+        )}
+
         <form onSubmit={submit} className="flex w-full max-w-[560px] gap-3">
           <input
             value={typed}
             onChange={(e) => setTyped(e.target.value)}
-            placeholder={stage === 'asking' ? 'Your answer…' : 'Type it: "Uber to uni every morning"'}
+            placeholder={stage === 'asking' ? 'Your answer…' : 'Try: Uber to uni every morning and a Lidl shop'}
             aria-label="Describe what you are doing"
             className="min-w-0 flex-1 border-4 border-ink bg-white px-4 py-3 text-[20px] text-ink"
           />
@@ -243,50 +283,18 @@ export function Oracle() {
           </div>
         )}
 
-        {stage === 'ready' && plans.length > 0 && (
-          <div className="anim-pop flex w-full max-w-[560px] flex-col items-center gap-3 text-center">
-            {saving && (
-              <div className="w-full border-4 border-ink bg-lime p-4 text-ink">
-                <SavingBig delta={saving.amount} once={saving.once} />
-                {plans.length > 1 && <p className="mt-2 text-[15px]">across {saving.count} {saving.count === 1 ? 'thing' : 'things'} we found</p>}
-                <ul className="mt-3 space-y-1 text-[16px] leading-snug">
-                  {plans.map((p) => {
-                    const line = savingExplain(p)
-                    return line ? <li key={p.id}>{line}</li> : null
-                  })}
-                </ul>
-              </div>
-            )}
-            {plans.length > 1 && (
-              <p className="text-[17px]">
-                I found <b>{plans.length} things</b> in that. We'll go through them one after another.
-              </p>
-            )}
-            <PixelButton className="w-full" data-fx="star" onClick={() => startQueue(plans)}>
-              {plans.length > 1 ? `Open the full answer: ${plans[0].title}` : 'Open the full answer'}
-            </PixelButton>
-            <span className="text-[14px] text-white/70">Estimates from Qwen. Real prices vary.</span>
-          </div>
-        )}
-
-        {stage === 'fallback' && preset && (
-          <div className="anim-pop flex flex-wrap items-center justify-center gap-3">
-            <p className="text-[17px]">
-              Qwen isn't answering, so here is the closest preset:{' '}
-              <b>
-                <PixelArt name={preset.icon} size={2} /> {preset.title}
-              </b>
-            </p>
-            <PixelButton data-fx="star" onClick={() => startDecision(preset.id)}>
-              Start it
-            </PixelButton>
-          </div>
-        )}
-
         {stage === 'toobig' && <p className="text-center text-[17px]">{TOO_BIG_LINE}</p>}
 
         {stage === 'error' && <p className="text-[17px]">Couldn't price that one. Try rewording.</p>}
       </div>
+
+      {stage === 'ready' && plans.length > 0 && (
+        <NextBar above>
+          <PixelButton className="w-full" data-fx="star" onClick={() => startQueue(plans)}>
+            Open the full answer
+          </PixelButton>
+        </NextBar>
+      )}
     </div>
   )
 }

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { NextBar } from '../components/NextBar'
 import { PixelArt } from '../components/PixelArt'
 import { PriorityMixer } from '../components/PriorityMixer'
-import { PixelButton, PixelCard, Label, Title } from '../components/ui'
+import { PixelButton, PixelCard, PixelIcon, Label, Title } from '../components/ui'
 import { getDecision } from '../data/decisions'
 import { adviceFor, buildFacts, plainAdvice } from '../lib/advice'
+import { isMuted, setMuted } from '../lib/sound'
+import { speak, stopSpeaking } from '../lib/speech'
 import { suggestWith } from '../lib/suggest'
 import { useAppStore } from '../store/useAppStore'
 
@@ -13,6 +15,7 @@ export function Choose() {
   const decisionId = useAppStore((s) => s.decisionId)
   const weights = useAppStore((s) => s.weights)
   const usual = useAppStore((s) => s.usual)
+  const session = useAppStore((s) => s.session)
   const setWeights = useAppStore((s) => s.setWeights)
   const setUsual = useAppStore((s) => s.setUsual)
   const commit = useAppStore((s) => s.commitChoice)
@@ -24,6 +27,9 @@ export function Choose() {
   const sug = d ? suggestWith(d, weights) : null
   const effective = sug?.weights ?? null
   const adviceKey = d && effective ? `${d.id}|${effective.cost.toFixed(2)}|${effective.time.toFixed(2)}|${effective.health.toFixed(2)}` : ''
+
+  // leaving the screen stops the voice
+  useEffect(() => () => stopSpeaking(), [])
 
   // the plain-English line is instant and always right; Qwen's wording replaces it a moment after you stop sliding
   useEffect(() => {
@@ -53,12 +59,14 @@ export function Choose() {
         <Title className="mb-1">
           <span id="step-priority">What matters most to you this week?</span>
         </Title>
+        {weights !== null && session.length > 0 && <p className="mb-2 text-[15px] font-semibold">Using what you picked for the last habit. Change it if this one is different.</p>}
         <p className="mb-4 text-[15px] text-muted">Tap money, time and health from most to least important and the options re-rank. Prefer sliders? Switch below.</p>
         <PriorityMixer
           key={d.id}
           options={d.options}
           usual={usualOpt}
           weights={effective}
+          chosen={weights !== null}
           selectedId={selected.id}
           onSelect={setManual}
           onChange={(w) => {
@@ -70,7 +78,23 @@ export function Choose() {
 
       <div className="min-w-0 space-y-6 lg:sticky lg:top-6">
         <PixelCard className="space-y-3 bg-white">
-          <Label>Our suggestion</Label>
+          <div className="flex items-center justify-between gap-2">
+            <Label>Our suggestion</Label>
+            <PixelButton
+              variant="white"
+              className="!min-h-[44px] !px-3 !py-1 text-[14px]"
+              aria-label="Hear our suggestion"
+              onClick={() => {
+                if (isMuted()) setMuted(false)
+                void speak(`We suggest ${suggested.name}. ${advice}`)
+              }}
+            >
+              <span className="flex items-center gap-2">
+                <PixelIcon name="volume" size={2} />
+                Hear it
+              </span>
+            </PixelButton>
+          </div>
           <p className="flex items-center gap-3 text-[24px] leading-tight">
             <PixelArt name={suggested.icon} size={3} />
             {suggested.name}
@@ -105,17 +129,11 @@ export function Choose() {
         </div>
       </div>
 
-      {/* portalled: the screen wrapper animates a transform, which would trap a fixed child */}
-      {createPortal(
-        <div className="fixed inset-x-0 bottom-0 z-10 border-t-4 border-ink bg-white p-3">
-          <div className="mx-auto max-w-md">
-            <PixelButton className="w-full" data-fx="pound" onClick={() => commit(selected.id)}>
-              {selected.id === suggested.id ? `Take ${selected.name}` : `Choose ${selected.name}`}
-            </PixelButton>
-          </div>
-        </div>,
-        document.body,
-      )}
+      <NextBar>
+        <PixelButton className="w-full" data-fx="pound" onClick={() => commit(selected.id)}>
+          {selected.id === suggested.id ? `Take ${selected.name}` : `Choose ${selected.name}`}
+        </PixelButton>
+      </NextBar>
     </div>
   )
 }

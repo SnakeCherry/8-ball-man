@@ -40,12 +40,16 @@ export default function App() {
 
   useEffect(() => installFx(), [])
   useEffect(() => installMusic(), [])
+  // every new screen starts at the top (otherwise "See my recap" opened the recap scrolled halfway down)
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [screen])
   const muted = useSyncExternalStore(subscribeMuted, isMuted)
 
   if (screen === 'ball') return <Oracle />
 
   const flow = FLOW[screen]
-  const showTabs = onboarded && !flow && screen !== 'onboarding'
+  const showTabs = onboarded && !flow && screen !== 'onboarding' && screen !== 'result'
 
   const back = () => {
     // Results goes home, not back to the clock: a new round is a new guess
@@ -56,8 +60,8 @@ export default function App() {
     screen === 'priority' ? 'the results' : 'decisions'
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b-4 border-ink bg-lime">
+    <div className={`min-h-screen ${screen === 'home' ? 'home-night' : ''}`}>
+      <header className="relative z-[2] border-b-4 border-ink bg-lime">
         <div className="mx-auto flex max-w-[1760px] items-center gap-2 px-6 py-2 xl:px-12">
           <Logo onClick={onboarded ? () => go('home') : undefined} />
           <button
@@ -83,7 +87,7 @@ export default function App() {
       </header>
 
       <main
-        className={`mx-auto max-w-[1760px] px-6 pt-6 xl:px-12 ${screen === 'priority' ? 'pb-32' : flow ? 'pb-8' : 'pb-28'}`}
+        className={`relative z-[1] mx-auto max-w-[1760px] px-6 pt-6 xl:px-12 ${screen === 'priority' || screen === 'reveal' || screen === 'result' ? 'pb-32' : flow ? 'pb-8' : 'pb-28'}`}
         // how much of the window is taken by the header, padding, bar and nav, so pages can fill the rest (see .page-fill)
         style={{ ['--chrome' as string]: screen === 'priority' ? '290px' : flow ? '195px' : '205px' }}
       >

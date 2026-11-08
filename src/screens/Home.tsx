@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ConveyorBelt } from '../components/ConveyorBelt'
 import { BallCard } from '../components/BallCard'
+import { PixelSky } from '../components/PixelSky'
 import { PixelButton } from '../components/ui'
 import { DECISIONS, SOURCE_NOTE } from '../data/decisions'
 import { gbp, mins } from '../lib/format'
@@ -45,6 +46,9 @@ export function Home() {
 
   return (
     <div className="page-fill">
+      <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
+        <PixelSky />
+      </div>
       <BallCard />
 
       {history.length > 0 && (
@@ -79,13 +83,13 @@ export function Home() {
           type="button"
           aria-expanded={showMore}
           onClick={() => setShowMore((v) => !v)}
-          className="inline-flex min-h-[44px] items-center gap-2 font-pixel text-[12px] uppercase underline"
+          className="inline-flex min-h-[44px] items-center gap-2 font-pixel text-[12px] uppercase text-white underline"
         >
           {showMore ? 'Hide more' : 'More: sources and data'}
         </button>
 
         {showMore && (
-          <div className="mt-3 space-y-5">
+          <div className="mt-3 space-y-5 text-white/90">
             <p className="text-[15px]">
               <b>How we got these numbers.</b> {SOURCE_NOTE}
             </p>

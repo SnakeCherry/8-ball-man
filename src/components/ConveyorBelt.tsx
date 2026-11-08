@@ -67,7 +67,7 @@ export function ConveyorBelt({ items, onPick }: { items: BeltItem[]; onPick: (id
     <section aria-label="Today's picks">
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
-          <h2 className="font-pixel text-[14px] uppercase leading-5">Today's picks</h2>
+          <h2 className="font-pixel text-[14px] uppercase leading-5 text-white">Today's picks</h2>
         </div>
         <button
           type="button"

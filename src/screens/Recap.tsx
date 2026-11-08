@@ -13,6 +13,9 @@ import { formatSpan, lifeFromPoints } from '../lib/life'
 import { personality, resolveHistory, totals, winWinScore } from '../lib/recap'
 import { useAppStore } from '../store/useAppStore'
 
+/** Green when it is going your way, red when it is not, white when it is level. */
+const tone = (n: number): string => (n > 0 ? 'bg-lime' : n < 0 ? 'bg-red' : 'bg-white')
+
 function Tile({ label, tone, children, sub }: { label: string; tone: string; children: ReactNode; sub: string }) {
   return (
     <div className={`pcard p-3 ${tone}`}>
@@ -98,15 +101,15 @@ export function Recap() {
 
       {/* the numbers */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Tile label="Money vs your usual" tone={money ? 'bg-white' : 'bg-red'} sub={money ? 'kept in your pocket' : 'spent over your usual'}>
+        <Tile label="Money vs your usual" tone={tone(t.savedGBP)} sub={money ? 'kept in your pocket' : 'spent over your usual'}>
           {money ? '+' : '−'}
           <CountUp value={Math.abs(t.savedGBP)} format={gbp} delayMs={150} />
         </Tile>
-        <Tile label="Free time" tone={time ? 'bg-white' : 'bg-red'} sub={time ? 'saved' : 'spent'}>
+        <Tile label="Free time" tone={tone(t.minutes)} sub={time ? 'saved' : 'spent'}>
           {time ? '+' : '−'}
           <CountUp value={Math.abs(t.minutes)} format={mins} delayMs={250} />
         </Tile>
-        <Tile label="Life" tone={health ? 'bg-white' : 'bg-red'} sub={health ? 'added by your choices' : 'given up by your choices'}>
+        <Tile label="Life" tone={tone(t.health)} sub={health ? 'added by your choices' : 'given up by your choices'}>
           {health ? '+' : '−'}
           <CountUp value={Math.abs(lifeFromPoints(t.health))} format={formatSpan} delayMs={350} />
         </Tile>

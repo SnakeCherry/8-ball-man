@@ -211,3 +211,16 @@ describe('easy rank', () => {
     expect(m.time).toBeLessThan(9)
   })
 })
+
+describe('several habits from one sentence', () => {
+  it('keeps what matters to you for the next habit and clears it at the end', () => {
+    const [a, b] = DECISIONS
+    const st = useAppStore.getState()
+    st.startQueue([a, b])
+    useAppStore.getState().setWeights({ cost: 0.7, time: 0.15, health: 0.15 })
+    useAppStore.getState().commitChoice(a.options[0].id)
+    expect(useAppStore.getState().weights).not.toBeNull() // carried to the second habit
+    useAppStore.getState().commitChoice(b.options[0].id)
+    expect(useAppStore.getState().weights).toBeNull() // the run is over
+  })
+})

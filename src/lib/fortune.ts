@@ -2,13 +2,16 @@ import { gbp } from './format'
 import { monthlyCost } from './guess'
 import { isOneOff } from './habit'
 import { bestSwitch } from './hook'
-import { formatSpan, lifeEach } from './life'
+import { formatSpan, lifeEach, projectLife } from './life'
 import type { Decision } from './types'
 
 /** The ball's answer in the ball's voice, built from the numbers so it is instant and always right. */
 export function fortuneLine(plans: Decision[]): string {
   if (!plans.length) return 'The mist is cloudy. Try again.'
-  if (plans.length > 1) return `I see ${plans.length} things in your future. We shall take them one by one.`
+  if (plans.length > 1) {
+    const total = savingSummary(plans)
+    return total ? `Save about ${gbp(total.amount)}${total.once ? '' : ' a month'}${total.count === plans.length ? ` by switching ${plans.length === 2 ? 'both' : 'all'}` : ''}.` : "Let's look at them one by one."
+  }
   const d = plans[0]
   const sw = bestSwitch(d)
   const usual = d.options.find((o) => o.id === d.usualId) ?? d.options[0]
@@ -31,12 +34,29 @@ export function savingSummary(plans: Decision[]): { amount: number; once: boolea
   return amount >= 0.5 ? { amount, once: allOneOff, count: saves.length } : null
 }
 
-/** One plain sentence on HOW the saving happens: what you would pick instead of your usual, and the two prices. */
-export function savingExplain(d: Decision): string | null {
+/** HOW the saving happens, in two short pieces: "Walk instead of Uber" and "free instead of £12 a go, about 20 times a month". */
+export function savingParts(d: Decision): { title: string; detail: string } | null {
   const sw = bestSwitch(d)
   if (!sw) return null
   const usual = d.options.find((o) => o.id === d.usualId) ?? d.options[0]
   const each = (o: { costGBP: number }, per: boolean) => (o.costGBP === 0 ? 'free' : `${gbp(o.costGBP)}${per ? ' a go' : ''}`)
-  if (isOneOff(d)) return `Buy the ${sw.option.name} instead of the ${usual.name}: ${each(sw.option, false)} instead of ${each(usual, false)}.`
-  return `Take ${sw.option.name} instead of ${usual.name}: ${each(sw.option, true)} instead of ${each(usual, true)}, about ${d.timesPerMonth} times a month.`
+  if (isOneOff(d)) return { title: `${sw.option.name} instead of ${usual.name}`, detail: `${each(sw.option, false)} instead of ${each(usual, false)}` }
+  return { title: `${sw.option.name} instead of ${usual.name}`, detail: `${each(sw.option, true)} instead of ${each(usual, true)}, about ${d.timesPerMonth} times a month` }
+}
+
+/** One plain sentence on HOW the saving happens. */
+export function savingExplain(d: Decision): string | null {
+  const p = savingParts(d)
+  if (!p) return null
+  return isOneOff(d) ? `Buy the ${p.title.replace(' instead of ', ' instead of the ')}: ${p.detail}.` : `Take ${p.title}: ${p.detail}.`
+}
+
+/** Minutes of life the best switch could add over `years` of keeping it up (negative if it costs life), or null when there is no switch. */
+export function switchLife(d: Decision, years = 10): number | null {
+  const sw = bestSwitch(d)
+  if (!sw || isOneOff(d)) return null
+  const usual = d.options.find((o) => o.id === d.usualId) ?? d.options[0]
+  const p = projectLife([{ decision: d, usual, chosen: sw.option }], years)
+  const m = p.life[p.life.length - 1]
+  return Math.abs(m) >= 1 ? m : null
 }

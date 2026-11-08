@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { BadgeCard } from '../components/BadgeCard'
 import { LifeView } from '../components/LifeView'
+import { NextBar } from '../components/NextBar'
 import { CountUp } from '../components/CountUp'
 import { PixelArt } from '../components/PixelArt'
 import { PixelButton, PixelCard, Label } from '../components/ui'
@@ -102,9 +103,6 @@ export function Result() {
       ))}
 
       <div className="space-y-3">
-        <PixelButton className="w-full" data-fx="star" onClick={() => go('recap')}>
-          See my recap
-        </PixelButton>
         <div className="grid gap-3 sm:grid-cols-2">
           <PixelButton variant="white" onClick={openMedals}>
             See all my medals
@@ -114,6 +112,11 @@ export function Result() {
           </PixelButton>
         </div>
       </div>
+      <NextBar>
+        <PixelButton className="w-full" data-fx="star" onClick={() => go('recap')}>
+          See my recap
+        </PixelButton>
+      </NextBar>
     </div>
   )
 }
