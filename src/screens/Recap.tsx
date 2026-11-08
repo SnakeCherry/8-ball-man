@@ -5,12 +5,11 @@ import { CountUp } from '../components/CountUp'
 import { LifeView } from '../components/LifeView'
 import { NextWeekPlan } from '../components/NextWeekPlan'
 import { PixelArt } from '../components/PixelArt'
-import { QuadrantMap } from '../components/QuadrantMap'
 import { PixelButton, PixelCard, Label } from '../components/ui'
 import { APP_NAME, EMPTY_HISTORY } from '../data/copy'
 import { badgeLevels, badgeStats } from '../lib/badges'
 import { gbp, mins } from '../lib/format'
-import { personality, quadrantPoints, resolveHistory, totals, winWinScore, wrappedText } from '../lib/recap'
+import { personality, resolveHistory, totals, winWinScore, wrappedText } from '../lib/recap'
 import { shareText } from '../lib/share'
 import { useAppStore } from '../store/useAppStore'
 
@@ -122,10 +121,7 @@ export function Recap() {
         </Tile>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
-        <QuadrantMap points={quadrantPoints(entries)} />
-        <NextWeekPlan />
-      </div>
+      <NextWeekPlan />
 
       <LifeView items={lifeItems} />
 

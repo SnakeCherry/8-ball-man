@@ -29,7 +29,7 @@ describe('better than usual score', () => {
     expect(winWinScore(entriesOf(w, u, u, u))).toMatchObject({ pct: 25, wins: 1, of: 4, tier: 'Switcher' })
     expect(winWinScore(entriesOf(u, u, u, u)).tier).toBe('Rookie')
     expect(winWinScore(entriesOf(w, w, u, u)).tier).toBe('Optimiser')
-    expect(winWinScore(entriesOf(w, w, w, u))).toMatchObject({ pct: 75, tier: 'Trade-off Pro' })
+    expect(winWinScore(entriesOf(w, w, w, u))).toMatchObject({ pct: 75, tier: 'Ball Master' })
   })
   it('goes into the share text once it has a score', () => {
     const e = entriesOf(rec(), rec(), rec())

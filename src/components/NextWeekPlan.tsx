@@ -32,7 +32,7 @@ export function NextWeekPlan() {
 
   return (
     <PixelCard className="space-y-4">
-      <Label>Try next week</Label>
+      <Label>What you could try next week</Label>
       {items.length === 0 ? (
         <p className="text-[17px] leading-snug">Make a few more choices and we'll suggest swaps that could save you more.</p>
       ) : (

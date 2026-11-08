@@ -19,6 +19,8 @@ const TIME_ROUNDS = 3
 const HEALTH_ROUNDS = 2
 const DUELS = TIME_ROUNDS + HEALTH_ROUNDS
 const MONEY_STEP = DUELS + 1
+/** The old "money left" question is gone; the stored value just needs a sensible default. */
+const DEFAULT_MONEY_LEFT = 25
 
 /** Replays yes/no answers into a narrowed range, so Back can simply drop an answer. */
 function replay(start: Bounds, answers: boolean[]): Bounds {
@@ -41,7 +43,6 @@ export function Onboarding() {
   // 0 welcome, 1..DUELS duels, MONEY_STEP money left
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState<boolean[]>([])
-  const [money, setMoney] = useState(25)
 
   const timeAnswers = answers.slice(0, TIME_ROUNDS)
   const healthAnswers = answers.slice(TIME_ROUNDS, DUELS)
@@ -63,8 +64,8 @@ export function Onboarding() {
           <Title>{APP_NAME}</Title>
           <p className="mt-3 text-[19px]">{TAGLINE}</p>
           <p className="mt-3">
-            Pick an everyday choice, guess the numbers, then see the real cost, time and CO₂. Along the way you'll
-            find out what matters to you.
+            Tell the ball an everyday choice, then see the real cost, time and health of each option. Along the
+            way you'll find out what matters to you.
           </p>
         </PixelCard>
         <PixelCard>
@@ -133,27 +134,9 @@ export function Onboarding() {
         </p>
         <p className="mt-2">We'll use that to judge whether paying more to save time is good value. You can always overrule it.</p>
       </PixelCard>
-      <PixelCard>
-        <Label>One last thing</Label>
-        <p className="mt-2 text-[22px] leading-tight">About how much money have you got left this week?</p>
-        <p className="mt-2 text-ink/70">Only you see this. It helps us weigh cost properly when things are tight.</p>
-        <div className="mt-5 grid grid-cols-4 gap-3" role="group" aria-label="Money left this week">
-          {[10, 25, 50, 100].map((n) => (
-            <button
-              key={n}
-              type="button"
-              aria-pressed={money === n}
-              onClick={() => setMoney(n)}
-              className="pbox-flat pselect py-3 text-center font-pixel text-[11px]"
-            >
-              {n === 100 ? '£100+' : `£${n}`}
-            </button>
-          ))}
-        </div>
-      </PixelCard>
       <PixelButton
         className="w-full"
-        onClick={() => finish({ timeRate, healthRate, moneyLeft: money })}
+        onClick={() => finish({ timeRate, healthRate, moneyLeft: DEFAULT_MONEY_LEFT })}
       >
         Let's go
       </PixelButton>

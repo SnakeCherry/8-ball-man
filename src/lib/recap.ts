@@ -102,7 +102,7 @@ export function winWinScore(entries: Entry[]): WinWinScore {
   const of = entries.length
   if (of < WIN_WIN_MIN) return { pct: null, wins, of, tier: 'Keep going' }
   const pct = Math.round((wins / of) * 100)
-  return { pct, wins, of, tier: pct < 25 ? 'Rookie' : pct < 50 ? 'Switcher' : pct < 75 ? 'Optimiser' : 'Trade-off Pro' }
+  return { pct, wins, of, tier: pct < 25 ? 'Rookie' : pct < 50 ? 'Switcher' : pct < 75 ? 'Optimiser' : 'Ball Master' }
 }
 
 /* ---- the quadrant map ---- */

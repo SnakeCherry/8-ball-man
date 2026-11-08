@@ -3,7 +3,7 @@ import { PixelArt } from './PixelArt'
 import { PixelIcon } from './ui'
 import type { SpriteName } from './ui'
 import { gbp, mins, score } from '../lib/format'
-import { EVEN_MIX, MIX_MAX, contributions, valuesToWeights, weightsText } from '../lib/mix'
+import { EVEN_MIX, MIX_MAX, contributions, rankToMix, valuesToWeights, weightsText } from '../lib/mix'
 import type { Mix } from '../lib/mix'
 import type { Axis, Option, Weights } from '../lib/types'
 
@@ -15,6 +15,8 @@ const AXES: Axis[] = ['cost', 'time', 'health']
 const MEDAL = ['#f7c948', '#c9d0d8', '#d28a4c']
 const ROW_H = 84
 const ROW_GAP = 10
+
+const PLACE = ['1st', '2nd', '3rd']
 
 const word = (v: number): string => (v === 0 ? 'Not at all' : v <= 3 ? 'A little' : v <= 6 ? 'Some' : v <= 8 ? 'A lot' : 'Most of all')
 
@@ -38,6 +40,9 @@ export function PriorityMixer({
 }) {
   // every slider starts in the middle, then belongs to the student
   const [mix, setMix] = useState<Mix>(EVEN_MIX)
+  // easy rank: tap Money, Time and Health from most to least important instead of sliding
+  const [easy, setEasy] = useState(false)
+  const [order, setOrder] = useState<Axis[]>([])
   const live = valuesToWeights(mix)
   const board = contributions(options, weights)
   const bestFit = Math.max(board[0].fit, 0.0001)
@@ -47,6 +52,18 @@ export function PriorityMixer({
     const next = { ...mix, [axis]: v }
     setMix(next)
     onChange(valuesToWeights(next))
+  }
+
+  const tapRank = (a: Axis) => {
+    const at = order.indexOf(a)
+    let next = at >= 0 ? order.slice(0, at) : [...order, a]
+    if (next.length === 2) next = [...next, AXES.find((x) => !next.includes(x))!] // the last one is whatever is left
+    setOrder(next)
+    if (next.length === 3) {
+      const m = rankToMix(next)
+      setMix(m)
+      onChange(valuesToWeights(m))
+    }
   }
 
   // a tick when a different option takes the lead
@@ -62,6 +79,33 @@ export function PriorityMixer({
   return (
     <div className="space-y-5">
       <div className="space-y-3" role="group" aria-label="What matters to you">
+        {easy ? (
+          <div className="space-y-3">
+            <p className="text-[16px]">Tap them from most to least important.</p>
+            <div className="grid grid-cols-3 gap-3">
+              {AXES.map((a) => {
+                const at = order.indexOf(a)
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    aria-pressed={at >= 0}
+                    onClick={() => tapRank(a)}
+                    className="pbox pselect relative flex min-h-[110px] flex-col items-center justify-center gap-2 px-1 py-3 text-[18px]"
+                    style={{ background: at >= 0 ? AXIS_COLOR[a] : '#fff' }}
+                  >
+                    <span className="grid h-[40px] w-[40px] place-items-center border-4 border-ink bg-white" aria-hidden="true">
+                      <PixelIcon name={AXIS_ICON[a]} size={2} color="#0a0a0a" />
+                    </span>
+                    {AXIS_NAME[a]}
+                    <span className="font-pixel text-[11px] uppercase">{at >= 0 ? PLACE[at] : 'Tap'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        ) : (
+          <>
         {AXES.map((a) => (
           <label key={a} className="grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1 sm:grid-cols-[110px_1fr_110px]">
             <span className="flex items-center gap-2 text-[18px]">
@@ -84,20 +128,35 @@ export function PriorityMixer({
             <span className="col-span-2 text-[14px] text-ink/70 sm:col-span-1 sm:text-right">{word(mix[a])}</span>
           </label>
         ))}
+          </>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <p className="num text-[14px] text-ink/70" aria-live="off">
             {weightsText(live)}
           </p>
-          <button
-            type="button"
-            className="pbtn pbtn-white !min-h-[36px] !px-3 !py-1 text-[13px]"
-            onClick={() => {
-              setMix(EVEN_MIX)
-              onChange(valuesToWeights(EVEN_MIX))
-            }}
-          >
-            Even mix
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="pbtn pbtn-white !min-h-[36px] !px-3 !py-1 text-[13px]"
+              onClick={() => {
+                setEasy((v) => !v)
+                setOrder([])
+              }}
+            >
+              {easy ? 'Sliders' : 'Easy rank'}
+            </button>
+            <button
+              type="button"
+              className="pbtn pbtn-white !min-h-[36px] !px-3 !py-1 text-[13px]"
+              onClick={() => {
+                setMix(EVEN_MIX)
+                setOrder([])
+                onChange(valuesToWeights(EVEN_MIX))
+              }}
+            >
+              Even mix
+            </button>
+          </div>
         </div>
       </div>
 

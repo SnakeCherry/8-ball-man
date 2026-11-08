@@ -2,15 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { BARS } from '../components/VoiceBits'
 import { startRecording } from './recorder'
 import type { Recording } from './recorder'
+import { setLevel } from './level'
 import { play } from './sound'
+import { createSilenceTracker } from './vad'
 import { listen, supportsListening, transcribe, whisperAvailable } from './speech'
 
 export type SpeechEngine = 'checking' | 'whisper' | 'browser' | 'none'
 export type SpeechPhase = 'idle' | 'recording' | 'decoding' | 'listening'
 
 /**
- * Speech to text for a whole sentence. Hold to talk through Whisper on the Spark when it is up,
- * otherwise tap to talk through the browser's recogniser. `onText` gets the final sentence.
+ * Speech to text for a whole sentence. Tap to talk through Whisper on the Spark when it is up (it stops when you pause),
+ * otherwise through the browser's recogniser. `onText` gets the final sentence.
  */
 export function useSpeechInput(onText: (text: string) => void) {
   const [engine, setEngine] = useState<SpeechEngine>('checking')
@@ -21,6 +23,7 @@ export function useSpeechInput(onText: (text: string) => void) {
   const stopBrowser = useRef<(() => void) | null>(null)
   const pressing = useRef(false)
   const alive = useRef(true)
+  const finishRef = useRef<() => void>(() => undefined)
   const onTextRef = useRef(onText)
   onTextRef.current = onText
 
@@ -43,7 +46,13 @@ export function useSpeechInput(onText: (text: string) => void) {
     setLevels([])
     play('click')
     try {
-      const r = await startRecording((l) => setLevels((prev) => [...prev.slice(-(BARS - 1)), l]))
+      const quiet = createSilenceTracker()
+      const r = await startRecording((l) => {
+        setLevels((prev) => [...prev.slice(-(BARS - 1)), l])
+        setLevel(l)
+        // tapped to start: stop by itself once they pause
+        if (rec.current && quiet.push(l, performance.now())) finishRef.current()
+      })
       if (!pressing.current || !alive.current) {
         r.cancel() // let go before the mic opened
         return
@@ -72,6 +81,8 @@ export function useSpeechInput(onText: (text: string) => void) {
     }
     if (alive.current) setPhase('idle')
   }, [])
+
+  finishRef.current = () => void finish()
 
   const toggleBrowser = useCallback(() => {
     if (phase === 'listening') {

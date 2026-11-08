@@ -2,7 +2,7 @@
  * Tiny chiptune blips made with WebAudio: no audio files. The context is created lazily on the
  * first sound (which always follows a tap, so autoplay rules are met). Mute is remembered.
  */
-export type SoundName = 'click' | 'tick' | 'urgent' | 'lock' | 'bullseye' | 'miss' | 'badge' | 'nudge'
+export type SoundName = 'click' | 'tick' | 'urgent' | 'lock' | 'bullseye' | 'miss' | 'badge' | 'nudge' | 'magic'
 
 interface Note {
   /** frequency in Hz; 0 is a rest */
@@ -20,6 +20,7 @@ const WAVE: Record<SoundName, OscillatorType> = {
   miss: 'triangle',
   badge: 'square',
   nudge: 'triangle',
+  magic: 'triangle',
 }
 
 const NOTES: Record<SoundName, Note[]> = {
@@ -31,6 +32,7 @@ const NOTES: Record<SoundName, Note[]> = {
   miss: [{ f: 330, d: 0.12 }, { f: 262, d: 0.12 }, { f: 196, d: 0.22 }],
   badge: [{ f: 784, d: 0.08 }, { f: 988, d: 0.08 }, { f: 1175, d: 0.08 }, { f: 1568, d: 0.22 }],
   nudge: [{ f: 440, d: 0.03 }],
+  magic: [{ f: 659, d: 0.07 }, { f: 880, d: 0.07 }, { f: 1319, d: 0.07 }, { f: 1760, d: 0.07 }, { f: 2093, d: 0.25 }],
 }
 
 const reducedMotion = (): boolean =>

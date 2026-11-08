@@ -1,3 +1,4 @@
+import { pulseLevel, trackPlaybackLevel } from './level'
 import { isMuted } from './sound'
 
 const UNITS: Record<string, number> = {
@@ -142,23 +143,36 @@ export function stopSpeaking(): void {
   if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel()
 }
 
-function speakInBrowser(text: string): void {
-  if (typeof speechSynthesis === 'undefined') return
-  try {
-    speechSynthesis.cancel()
-    const u = new SpeechSynthesisUtterance(text)
-    u.lang = 'en-GB'
-    u.rate = 1.05
-    const voice = speechSynthesis.getVoices().find((v) => v.lang === 'en-GB')
-    if (voice) u.voice = voice
-    speechSynthesis.speak(u)
-  } catch {
-    /* speech is a nicety */
-  }
+function speakInBrowser(text: string): Promise<void> {
+  if (typeof speechSynthesis === 'undefined') return Promise.resolve()
+  return new Promise((resolve) => {
+    try {
+      speechSynthesis.cancel()
+      const u = new SpeechSynthesisUtterance(text)
+      u.lang = 'en-GB'
+      u.rate = 1.05
+      const voice = speechSynthesis.getVoices().find((v) => v.lang === 'en-GB')
+      if (voice) u.voice = voice
+      const stopPulse = pulseLevel()
+      const done = () => {
+        stopPulse()
+        resolve()
+      }
+      u.onend = done
+      u.onerror = done
+      window.setTimeout(done, 8000) // some browsers never fire onend
+      speechSynthesis.speak(u)
+    } catch {
+      resolve() // speech is a nicety
+    }
+  })
 }
 
+/** Say something and wait until it has finished (straight away when muted or when nothing can speak). */
+export const speakAndWait = (text: string): Promise<void> => speak(text, true)
+
 /** Say something out loud. Quiet when muted. A newer call cuts off an older one. */
-export async function speak(text: string): Promise<void> {
+export async function speak(text: string, untilDone = false): Promise<void> {
   if (isMuted()) return
   stopSpeaking()
   const mine = speakToken
@@ -181,9 +195,11 @@ export async function speak(text: string): Promise<void> {
     const audio = new Audio(url)
     playing = audio
     await audio.play()
+    trackPlaybackLevel(audio)
+    if (untilDone) await new Promise<void>((done) => ['ended', 'pause', 'error'].forEach((ev) => audio.addEventListener(ev, () => done(), { once: true })))
   } catch {
     remoteDownUntil = Date.now() + 20_000
-    if (mine === speakToken && !isMuted()) speakInBrowser(said)
+    if (mine === speakToken && !isMuted()) await speakInBrowser(said)
   }
 }
 

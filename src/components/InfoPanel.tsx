@@ -9,7 +9,8 @@ import type { Decision } from '../lib/types'
  * Useful info for each option instead of a race: the shop's own website, three recipes, a route, where to look,
  * or a tip. Qwen picks what to look up; the links themselves are built in lib/info.ts from real, listed sites.
  */
-export function InfoPanel({ decision }: { decision: Decision }) {
+export function InfoPanel({ decision, focusId }: { decision: Decision; focusId?: string }) {
+  const [others, setOthers] = useState(false)
   const [infos, setInfos] = useState<OptionInfo[]>(() => decision.options.map(defaultInfo))
   const [loading, setLoading] = useState(true)
 
@@ -34,13 +35,13 @@ export function InfoPanel({ decision }: { decision: Decision }) {
         <Label>Useful info</Label>
         {loading && <span className="anim-blink font-pixel text-[9px] uppercase">Looking it up…</span>}
       </div>
-      <ul className="space-y-4">
-        {decision.options.map((o, i) => {
-          const info = infos[i] ?? defaultInfo(o)
+      {(() => {
+        const row = (o: Decision['options'][number], big: boolean) => {
+          const info = infos[decision.options.indexOf(o)] ?? defaultInfo(o)
           const links = info.links.filter((l) => isSafeUrl(l.url))
           return (
             <li key={o.id} className="space-y-2 border-b-2 border-ink/15 pb-4 last:border-b-0 last:pb-0">
-              <p className="flex flex-wrap items-center gap-2 text-[18px] leading-tight">
+              <p className={`flex flex-wrap items-center gap-2 leading-tight ${big ? 'text-[22px]' : 'text-[18px]'}`}>
                 <PixelArt name={o.icon} size={2} />
                 <b>{o.name}</b>
                 <span className="border-4 border-ink bg-white px-1 font-pixel text-[9px] uppercase">{info.label}</span>
@@ -55,7 +56,7 @@ export function InfoPanel({ decision }: { decision: Decision }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="pbox-flat pselect inline-flex items-center gap-2 px-2 py-1 text-[15px] leading-tight"
+                        className={`pbox pselect inline-flex items-center gap-2 leading-tight ${big ? 'px-3 py-2 text-[17px]' : 'px-2 py-1 text-[15px]'}`}
                       >
                         {l.title}
                         <PixelIcon name="arrow" size={2} />
@@ -66,8 +67,20 @@ export function InfoPanel({ decision }: { decision: Decision }) {
               )}
             </li>
           )
-        })}
-      </ul>
+        }
+        const focus = decision.options.find((o) => o.id === focusId)
+        if (!focus) return <ul className="space-y-4">{decision.options.map((o) => row(o, false))}</ul>
+        const rest = decision.options.filter((o) => o.id !== focus.id)
+        return (
+          <>
+            <ul>{row(focus, true)}</ul>
+            <button type="button" aria-expanded={others} onClick={() => setOthers((v) => !v)} className="font-pixel text-[11px] uppercase underline">
+              {others ? 'Hide other options' : `Other options (${rest.length})`}
+            </button>
+            {others && <ul className="space-y-4">{rest.map((o) => row(o, false))}</ul>}
+          </>
+        )
+      })()}
       <p className="text-[13px] text-ink/60">Links open in a new tab. Prices and times can change, so check before you go.</p>
     </PixelCard>
   )

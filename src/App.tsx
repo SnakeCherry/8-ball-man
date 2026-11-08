@@ -6,6 +6,7 @@ import { PixelIcon } from './components/ui'
 import type { SpriteName } from './components/ui'
 import { installFx } from './lib/fx'
 import { isMuted, setMuted, subscribeMuted } from './lib/sound'
+import { Oracle } from './screens/Oracle'
 import { Result } from './screens/Result'
 import { Home } from './screens/Home'
 import { Onboarding } from './screens/Onboarding'
@@ -38,6 +39,8 @@ export default function App() {
 
   useEffect(() => installFx(), [])
   const muted = useSyncExternalStore(subscribeMuted, isMuted)
+
+  if (screen === 'ball') return <Oracle />
 
   const flow = FLOW[screen]
   const showTabs = onboarded && !flow && screen !== 'onboarding'

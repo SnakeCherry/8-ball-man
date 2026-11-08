@@ -10,6 +10,17 @@ export const MIX_MAX = 10
 /** Every slider in the middle: money, time and health matter equally until the student says otherwise. */
 export const EVEN_MIX: Mix = { cost: MIX_MAX / 2, time: MIX_MAX / 2, health: MIX_MAX / 2 }
 
+/** Rank the three priorities (most important first) as slider values: 1st = 9, 2nd = 5, 3rd = 2. Any left out share the rest evenly. */
+export function rankToMix(order: Axis[]): Mix {
+  const steps = [9, 5, 2]
+  const mix: Mix = { ...EVEN_MIX }
+  const placed = order.slice(0, 3)
+  placed.forEach((a, i) => (mix[a] = steps[i]))
+  const left = AXES.filter((a) => !placed.includes(a))
+  left.forEach((a) => (mix[a] = left.length === 3 ? EVEN_MIX[a] : Math.round(left.reduce((s, _x, i) => s + steps[placed.length + i], 0) / left.length)))
+  return mix
+}
+
 /** Slider values to weights that sum to 1. No priority is ever ignored completely (5% floor). All zero means an even split. */
 export function valuesToWeights(v: Mix): Weights {
   const raw = AXES.map((a) => Math.max(0, v[a]))

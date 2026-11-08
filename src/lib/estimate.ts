@@ -9,7 +9,7 @@ import type { Decision, Option } from './types'
  * match over the preset decisions is the fallback when it is down.
  */
 
-const SYSTEM = `Turn a UK student's habits into prices for a money-saving app. GBP, Edinburgh prices.
+const BASE = `Turn a UK student's habits into prices for a money-saving app. GBP, Edinburgh prices.
 They may describe ONE thing or SEVERAL (at most 3). Give each thing its own block, with a blank line between blocks.
 In each block, option 1 is exactly what they described (their usual); options 2 and 3 are realistic alternatives for the same need.
 Per single use give cost in pounds, time in minutes and a health score from 1 to 10: how good it is for their body and mind (movement, nutrition, sleep, stress). Walking or cycling 8-10, a home-cooked meal 8, a takeaway or sugary drink 2-3, a taxi or sitting still 3.
@@ -31,6 +31,12 @@ Treadmill at home|home|0|40|6
 Deal meal|plate|7|60|4
 Cook at home|cook|3|45|8
 Takeaway|bag|14|30|3`
+
+/** Added only on the first ask: the ball may ask one question, never two. */
+const ASK_RULE = `
+
+Only if the request is too vague to price at all (no clear activity, such as just "food" or "money"), reply with ONE line and nothing else: ?|a short friendly question|choice 1|choice 2|choice 3
+Choices are 2 to 4 words each. If you can reasonably guess, always price it instead of asking.`
 
 // A short pipe-separated reply is about a quarter of the tokens of JSON, and it streams line by line:
 // at ~28 tokens a second on the Spark that took the wait from ~9 s to ~3 s, with the first option showing at ~1.3 s.
@@ -148,15 +154,30 @@ const toRaw = (p: ParsedEstimate) => ({
   options: p.options,
 })
 
+export type EstimateResult = { kind: 'plans'; decisions: Decision[] } | { kind: 'ask'; question: string; choices: string[] }
+
+/** Read a `?|question|choice|choice` line, or null when the reply is not a question. */
+export function parseQuestion(text: string): { question: string; choices: string[] } | null {
+  for (const raw of text.split('\n')) {
+    const line = raw.replace(/^[\s`>*-]+/, '').trim()
+    if (!line.startsWith('?')) continue
+    const parts = line.split('|').map((x) => x.trim())
+    const question = parts[1]?.slice(0, 90)
+    const choices = parts.slice(2).filter(Boolean).map((c) => c.slice(0, 30)).slice(0, 3)
+    if (question && choices.length >= 2) return { question, choices }
+  }
+  return null
+}
+
 const cache = new Map<string, Decision[]>()
-const request = (said: string, stream: boolean, maxTokens: number): Promise<Response> =>
+const request = (said: string, stream: boolean, maxTokens: number, canAsk = false): Promise<Response> =>
   fetch('/api/llm/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal: AbortSignal.timeout(30_000),
     body: JSON.stringify({
       messages: [
-        { role: 'system', content: SYSTEM },
+        { role: 'system', content: canAsk ? BASE + ASK_RULE : BASE },
         { role: 'user', content: said },
       ],
       temperature: 0,
@@ -168,7 +189,7 @@ const request = (said: string, stream: boolean, maxTokens: number): Promise<Resp
 
 /** Prime the server's prompt cache so the first real question skips reading the instructions (about 0.4 s). */
 export function warmUpLlm(): void {
-  void request('hi', false, 1).catch(() => undefined)
+  void request('hi', false, 1, true).catch(() => undefined)
 }
 
 /**
@@ -176,12 +197,12 @@ export function warmUpLlm(): void {
  * in, so the screen can fill in block by block and option by option. Throws on any failure so the caller can
  * fall back.
  */
-export async function estimateDecisions(said: string, onPartial?: (groups: ParsedEstimate[]) => void): Promise<Decision[]> {
+export async function estimateDecisions(said: string, onPartial?: (groups: ParsedEstimate[]) => void, canAsk = false): Promise<EstimateResult> {
   const key = said.trim().toLowerCase()
   const hit = cache.get(key)
-  if (hit) return hit
+  if (hit) return { kind: 'plans', decisions: hit }
 
-  const res = await request(said, true, 320)
+  const res = await request(said, true, 320, canAsk)
   if (!res.ok || !res.body) throw new Error(`llm ${res.status}`)
   const reader = res.body.getReader()
   const dec = new TextDecoder()
@@ -204,12 +225,14 @@ export async function estimateDecisions(said: string, onPartial?: (groups: Parse
     }
     onPartial?.(parseGroups(reply, false))
   }
+  const ask = canAsk ? parseQuestion(reply) : null
+  if (ask) return { kind: 'ask', ...ask }
   const groups = parseGroups(reply, true)
   onPartial?.(groups)
   const decisions = groups.map((g) => sanitiseDecision(toRaw(g), said)).filter((d): d is Decision => d !== null)
   if (!decisions.length) throw new Error('unusable estimate')
   cache.set(key, decisions)
-  return decisions
+  return { kind: 'plans', decisions }
 }
 
 /* ---- fallback: match the words to one of the preset decisions ---- */

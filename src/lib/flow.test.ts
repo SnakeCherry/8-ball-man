@@ -196,3 +196,18 @@ describe('sliders start in the middle', () => {
     expect(suggestWith(commute, valuesToWeights({ cost: 0, time: 10, health: 0 })).suggested.id).toBe('uber')
   })
 })
+
+describe('easy rank', () => {
+  it('turns an order into slider values, most important highest', async () => {
+    const { rankToMix } = await import('./mix')
+    expect(rankToMix(['health', 'cost', 'time'])).toEqual({ health: 9, cost: 5, time: 2 })
+    expect(rankToMix(['time', 'health', 'cost'])).toEqual({ time: 9, health: 5, cost: 2 })
+  })
+  it('a partial order shares the remaining places out evenly', async () => {
+    const { rankToMix } = await import('./mix')
+    const m = rankToMix(['cost'])
+    expect(m.cost).toBe(9)
+    expect(m.time).toBe(m.health)
+    expect(m.time).toBeLessThan(9)
+  })
+})

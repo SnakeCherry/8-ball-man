@@ -15,7 +15,7 @@ import { nearestPriority } from '../lib/mix'
 import { nextInQueue } from '../lib/queue'
 import type { ChoiceRecord, Decision, Priority, Weights } from '../lib/types'
 
-export type Screen = 'onboarding' | 'home' | 'predict' | 'reveal' | 'priority' | 'result' | 'recap'
+export type Screen = 'onboarding' | 'home' | 'predict' | 'reveal' | 'priority' | 'result' | 'recap' | 'ball'
 
 /** A typical student's weekly spending money, used to judge how tight "money left" is. */
 export const WEEKLY_BASE = 50
@@ -70,10 +70,14 @@ interface Flow {
   queue: string[]
   /** what was chosen so far in this run of habits, for the summary */
   session: LastResult[]
+  /** what to price as soon as the ball page opens (from an example chip), or null to start listening */
+  ballSeed: string | null
 }
 
 interface Actions {
   go: (screen: Screen) => void
+  /** open the 8-ball page, optionally with something to price straight away */
+  askBall: (seed?: string) => void
   startDecision: (id: string) => void
   /** begin from a decision made from speech: no guess round, straight to the results */
   startCustom: (d: Decision) => void
@@ -119,6 +123,7 @@ const freshFlow = (screen: Screen): Flow => ({
   lastResult: null,
   queue: [],
   session: [],
+  ballSeed: null,
 })
 
 const levelsFor = (history: ChoiceRecord[], usual: Record<string, string>, chains: number): BadgeLevel[] =>
@@ -195,6 +200,8 @@ export const useAppStore = create<AppState>()(
       ...freshFlow('onboarding'),
 
       go: (screen) => set({ screen }),
+
+      askBall: (seed) => set({ screen: 'ball', ballSeed: seed ?? null }),
 
       startDecision: (id) =>
         set((s) => ({

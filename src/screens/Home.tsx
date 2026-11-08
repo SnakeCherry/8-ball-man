@@ -1,28 +1,33 @@
 import { useState } from 'react'
 import { ConveyorBelt } from '../components/ConveyorBelt'
-import { VoiceTell } from '../components/VoiceTell'
-import { PixelButton, PixelCard, Label } from '../components/ui'
-import { PRIORITY_NAME } from '../data/copy'
+import { BallCard } from '../components/BallCard'
+import { PixelButton } from '../components/ui'
 import { DECISIONS, SOURCE_NOTE } from '../data/decisions'
 import { gbp, mins } from '../lib/format'
+import { projectLife, signedSpan } from '../lib/life'
 import { resolveHistory, totals } from '../lib/recap'
 import type { Decision } from '../lib/types'
 import { useAppStore } from '../store/useAppStore'
 
 const PICKS = 3
 
+/** Green when it is going your way, red when it is not, white when it is level. */
+const tone = (n: number): string => (n > 0 ? 'bg-lime' : n < 0 ? 'bg-red' : 'bg-white')
+
 export function Home() {
-  const { moneyLeft, vibeHistory, history, usual } = useAppStore()
+  const { history, usual } = useAppStore()
   const startDecision = useAppStore((s) => s.startDecision)
   const startCustom = useAppStore((s) => s.startCustom)
   const customDecisions = useAppStore((s) => s.customDecisions)
-  const setMoneyLeft = useAppStore((s) => s.setMoneyLeft)
   const loadDemo = useAppStore((s) => s.loadDemo)
   const reset = useAppStore((s) => s.reset)
   const [showMore, setShowMore] = useState(false)
   const [confirming, setConfirming] = useState(false)
-  const last = vibeHistory.at(-1)
-  const totalsNow = totals(history, resolveHistory(history, usual))
+  const entries = resolveHistory(history, usual)
+  const totalsNow = totals(history, entries)
+  // life added if you keep your latest choice on each habit up for a year (rough estimate, see the Time vs life chart)
+  const lifeItems = [...new Map(entries.map((e) => [e.decision.id, { decision: e.decision, usual: e.usual, chosen: e.chosen }])).values()]
+  const lifeYear = projectLife(lifeItems, 1).life[1] ?? 0
 
   const tried = (d: Decision) => history.filter((h) => h.decisionId === d.id).length
   // the belt carries every decision, the ones you've tried least first (stable in data order for ties)
@@ -40,43 +45,27 @@ export function Home() {
 
   return (
     <div className="page-fill">
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[3fr_1fr] xl:items-start">
-        <VoiceTell />
-        <div className="min-w-0 space-y-6">
-          {history.length > 0 && (
-            <PixelCard>
-              <Label>Your week so far</Label>
-              <ul className="num mt-3 grid grid-cols-3 gap-2 text-center">
-                <li className="border-4 border-ink bg-white px-1 py-2 leading-tight">
-                  <span className="block text-[13px] text-ink/70">Money</span>
-                  <span className="block text-[20px] font-semibold">
-                    {totalsNow.savedGBP >= 0 ? '+' : '−'}
-                    {gbp(totalsNow.savedGBP)}
-                  </span>
-                </li>
-                <li className="border-4 border-ink bg-white px-1 py-2 leading-tight">
-                  <span className="block text-[13px] text-ink/70">Time</span>
-                  <span className="block text-[20px] font-semibold">{mins(totalsNow.minutes)}</span>
-                  <span className="block text-[12px] text-ink/70">{totalsNow.minutes >= 0 ? 'saved' : 'extra'}</span>
-                </li>
-                <li className="border-4 border-ink bg-white px-1 py-2 leading-tight">
-                  <span className="block text-[13px] text-ink/70">Health</span>
-                  <span className="block text-[20px] font-semibold">
-                    {totalsNow.health >= 0 ? '+' : '−'}
-                    {Math.abs(totalsNow.health)}
-                  </span>
-                </li>
-              </ul>
-            </PixelCard>
-          )}
+      <BallCard />
 
-          {last && (
-            <p className="pcard px-3 py-2 text-[16px]">
-              Last time you chose <b>{PRIORITY_NAME[last]}</b>. We'll start from there.
-            </p>
-          )}
-        </div>
-      </div>
+      {history.length > 0 && (
+        <ul className="num grid grid-cols-3 gap-3 text-center" aria-label="Your week so far">
+          <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(totalsNow.savedGBP)}`}>
+            <span className="block text-[13px] text-ink/70">Money this week</span>
+            <span className="block text-[22px] font-semibold">
+              {totalsNow.savedGBP >= 0 ? '+' : '−'}
+              {gbp(totalsNow.savedGBP)}
+            </span>
+          </li>
+          <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(totalsNow.minutes)}`}>
+            <span className="block text-[13px] text-ink/70">Time {totalsNow.minutes >= 0 ? 'saved' : 'extra'}</span>
+            <span className="block text-[22px] font-semibold">{mins(totalsNow.minutes)}</span>
+          </li>
+          <li className={`border-4 border-ink px-1 py-2 leading-tight ${tone(lifeYear)}`} title="A rough, illustrative estimate if you keep your choices up for a year. Not medical advice.">
+            <span className="block text-[13px] text-ink/70">Life {lifeYear >= 0 ? 'added' : 'lost'} a year</span>
+            <span className="block text-[22px] font-semibold">{signedSpan(lifeYear)}</span>
+          </li>
+        </ul>
+      )}
 
       <div className="flex flex-1 flex-col justify-center">
         <ConveyorBelt items={beltItems} onPick={pickFromBelt} />
@@ -89,30 +78,11 @@ export function Home() {
           onClick={() => setShowMore((v) => !v)}
           className="inline-flex min-h-[44px] items-center gap-2 font-pixel text-[11px] uppercase underline"
         >
-          {showMore ? 'Hide more' : 'More: money left, sources, data'}
+          {showMore ? 'Hide more' : 'More: sources and data'}
         </button>
 
         {showMore && (
           <div className="mt-3 space-y-5">
-            <PixelCard>
-              <Label>Money left this week</Label>
-              <div className="mt-4 grid grid-cols-4 gap-3" role="group" aria-label="Money left this week">
-                {[10, 25, 50, 100].map((n) => (
-                  <button
-                    key={n}
-                    type="button"
-                    aria-pressed={moneyLeft === n}
-                    data-fx="pound"
-                    onClick={() => setMoneyLeft(n)}
-                    className="pbox-flat pselect py-3 text-center font-pixel text-[11px]"
-                  >
-                    {n === 100 ? '£100+' : `£${n}`}
-                  </button>
-                ))}
-              </div>
-              <p className="mt-3 text-[14px] text-ink/70">When this is low, cost counts for a bit more in our suggestions.</p>
-            </PixelCard>
-
             <p className="text-[15px]">
               <b>How we got these numbers.</b> {SOURCE_NOTE}
             </p>

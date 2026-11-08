@@ -67,7 +67,6 @@ export function ConveyorBelt({ items, onPick }: { items: BeltItem[]; onPick: (id
       <div className="mb-3 flex items-end justify-between gap-3">
         <div>
           <h2 className="font-pixel text-[14px] uppercase leading-5">Today's picks</h2>
-          <p className="mt-1 text-[15px] text-ink/70">Grab one off the belt to start. It stops while you hover.</p>
         </div>
         <button
           type="button"

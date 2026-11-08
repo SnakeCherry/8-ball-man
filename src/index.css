@@ -604,3 +604,118 @@ body {
     stroke-dashoffset: 0;
   }
 }
+
+/* ---- the magic 8-ball ---- */
+.ball-win {
+  fill: #f4eed2;
+}
+.ball-listening .ball-win,
+.ball-thinking .ball-win,
+.ball-text .ball-win {
+  fill: #0d0626;
+}
+.chant-lit {
+  color: #6b3fd4;
+  text-shadow: 3px 3px 0 #fff6a8;
+}
+.ball-mist,
+.ball-spark {
+  opacity: 0.8;
+}
+.ball-text .ball-mist {
+  opacity: 0.25;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ball-idle .ball-body {
+    animation: pbob 2s steps(2) infinite;
+  }
+  .ball-thinking .ball-sphere {
+    animation: ballshake 0.5s steps(2) infinite;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .ball-spark {
+    animation: pblink 1.2s steps(1) infinite;
+  }
+}
+@keyframes ballhue {
+  0% {
+    fill: #6b3fd4;
+  }
+  25% {
+    fill: #2f6bff;
+  }
+  50% {
+    fill: #d43fb0;
+  }
+  75% {
+    fill: #17b7a8;
+  }
+}
+@keyframes ballglow {
+  0%,
+  100% {
+    fill: #6b3fd4;
+  }
+  50% {
+    fill: #8f68f0;
+  }
+}
+@keyframes ballshake {
+  0% {
+    transform: translate(-1px, 0);
+  }
+  50% {
+    transform: translate(1px, 0.5px);
+  }
+}
+@keyframes ballmist {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(2px, 1px);
+  }
+  66% {
+    transform: translate(-1px, 2px);
+  }
+}
+
+/* ---- the 8-ball page: a night sky ---- */
+.star {
+  position: absolute;
+  background: #fff6a8;
+  opacity: 0.85;
+}
+.shooting {
+  position: absolute;
+  top: 12%;
+  left: -10%;
+  width: 28px;
+  height: 4px;
+  background: linear-gradient(90deg, transparent, #fff);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .star {
+    animation: pblink 2.4s steps(1) infinite;
+  }
+  .shooting {
+    animation: shoot 7s steps(14) infinite;
+  }
+}
+@keyframes shoot {
+  0%,
+  80% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(60vw, 18vh);
+  }
+}

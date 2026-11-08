@@ -2,7 +2,7 @@ import { PixelArt } from './PixelArt'
 import { APP_NAME } from '../data/copy'
 
 /**
- * The Trade-Off Check logo: a balance scale (a coin on one side, a heart on the other) beside a chunky pixel
+ * The Magical 8-Ball logo: a pixel 8-ball beside a chunky pixel
  * wordmark with a two-tone offset shadow. Clickable (takes you home) when `onClick` is given.
  */
 export function Logo({ onClick }: { onClick?: () => void }) {
@@ -10,8 +10,8 @@ export function Logo({ onClick }: { onClick?: () => void }) {
     <>
       <PixelArt name="logo" size={3} natural className="logo-icon" />
       <span className="logo-word font-pixel uppercase leading-[1.15]">
-        <span className="block text-[16px]">Trade-Off</span>
-        <span className="block text-[16px]">Check</span>
+        <span className="block text-[16px]">Magical</span>
+        <span className="block text-[16px]">8-Ball</span>
       </span>
     </>
   )

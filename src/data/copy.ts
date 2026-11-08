@@ -2,8 +2,8 @@ import type { Axis, Priority, Verdict } from '../lib/types'
 
 /** All voice strings live here: calm, warm, light. Numbers first, no moralising. */
 
-export const APP_NAME = 'Trade-Off Check'
-export const TAGLINE = 'See what each choice really costs you.'
+export const APP_NAME = 'Magical 8-Ball'
+export const TAGLINE = 'Ask the ball what each choice really costs you.'
 
 export const AXIS_LABEL: Record<Axis, { ask: string; word: string; short: string }> = {
   cost: { ask: 'Which is cheapest?', word: 'cheapest', short: 'Cost' },
